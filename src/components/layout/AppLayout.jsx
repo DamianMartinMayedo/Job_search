@@ -4,6 +4,11 @@ import Header from './Header'
 import ToastContainer from '../ui/Toast'
 import useAppStore from '../../store/useAppStore'
 
+const marginClass = {
+  true: 'lg:ml-16',
+  false: 'lg:ml-60',
+}
+
 export default function AppLayout() {
   const sidebarCollapsed = useAppStore((s) => s.sidebarCollapsed)
 
@@ -11,10 +16,10 @@ export default function AppLayout() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
       <main
-        className={`flex flex-1 flex-col transition-all duration-200 ${sidebarCollapsed ? 'ml-16' : 'ml-60'}`}
+        className={`flex flex-1 flex-col transition-all duration-200 ml-0 md:ml-12 ${marginClass[String(sidebarCollapsed)]}`}
       >
         <Header />
-        <div className="flex-1 p-6">
+        <div className="flex-1 p-4 pb-20 md:p-6 md:pb-6">
           <Outlet />
         </div>
       </main>

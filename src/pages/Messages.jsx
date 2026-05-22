@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { Mail } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Mail, Eye, CheckCircle } from 'lucide-react'
 import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { useMessages, useUpdateMessage } from '../hooks/useMessages'
@@ -14,22 +16,32 @@ export default function Messages() {
   const { data: messages, isLoading } = useMessages(filter || undefined)
   const updateMessage = useUpdateMessage()
 
-  const handleMarkFollowUp = (msg) => {
-    updateMessage.mutate(
-      { id: msg.id, data: { follow_up_done: true, status: 'closed' } },
-      {
-        onSuccess: () =>
-          addToast({ type: 'success', message: 'Seguimiento marcado como hecho' }),
-      }
-    )
-  }
-
   const handleMarkSent = (msg) => {
     updateMessage.mutate(
       { id: msg.id, data: { status: 'sent' } },
       {
         onSuccess: () =>
           addToast({ type: 'success', message: 'Marcado como enviado' }),
+      }
+    )
+  }
+
+  const handleMarkReplied = (msg) => {
+    updateMessage.mutate(
+      { id: msg.id, data: { status: 'replied' } },
+      {
+        onSuccess: () =>
+          addToast({ type: 'success', message: 'Marcado como respondido' }),
+      }
+    )
+  }
+
+  const handleMarkFollowUp = (msg) => {
+    updateMessage.mutate(
+      { id: msg.id, data: { follow_up_done: true, status: 'closed' } },
+      {
+        onSuccess: () =>
+          addToast({ type: 'success', message: 'Seguimiento completado' }),
       }
     )
   }
@@ -60,8 +72,8 @@ export default function Messages() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {messages.length} mensajes
-            {filter && ` (${MESSAGE_STATUS_MAP[filter]?.label || filter})`}
+            {messages.length} mensaje{messages.length !== 1 ? 's' : ''}
+            {filter && ` · ${MESSAGE_STATUS_MAP[filter]?.label || filter}`}
           </p>
         </div>
         <select
@@ -95,12 +107,20 @@ export default function Messages() {
               className="grid grid-cols-1 gap-2 border-b border-slate-100 px-6 py-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-4"
             >
               <div className="col-span-4">
-                <p className="text-sm font-medium text-slate-900 truncate">
+                <Link
+                  to={`/app/companies/${m.company_id}`}
+                  className="text-sm font-medium text-slate-900 hover:text-primary-600 truncate block"
+                >
                   {m.subject}
-                </p>
+                </Link>
               </div>
               <div className="col-span-2 text-sm text-slate-600">
-                {m.company_name || '—'}
+                <Link
+                  to={`/app/companies/${m.company_id}`}
+                  className="text-primary-600 hover:text-primary-700"
+                >
+                  {m.company_name || '—'}
+                </Link>
               </div>
               <div className="col-span-2 text-sm text-slate-600">
                 {m.contact_first_name || '—'}
@@ -117,9 +137,19 @@ export default function Messages() {
                 {m.status === 'draft' && (
                   <button
                     onClick={() => handleMarkSent(m)}
-                    className="text-xs text-primary-600 hover:text-primary-700 cursor-pointer"
+                    className="rounded p-1 text-slate-400 hover:bg-green-50 hover:text-green-600 cursor-pointer"
+                    title="Marcar como enviado"
                   >
-                    Enviar
+                    <CheckCircle size={16} />
+                  </button>
+                )}
+                {m.status === 'sent' && (
+                  <button
+                    onClick={() => handleMarkReplied(m)}
+                    className="rounded p-1 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
+                    title="Marcar como respondido"
+                  >
+                    <Eye size={16} />
                   </button>
                 )}
                 {m.status === 'follow_up' && !m.follow_up_done && (
