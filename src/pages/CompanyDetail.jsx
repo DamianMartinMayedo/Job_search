@@ -8,16 +8,13 @@ import EmptyState from '../components/ui/EmptyState'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { useCompany, useUpdateCompany } from '../hooks/useCompanies'
 import {
-  useContacts,
   useCreateContact,
   useDeleteContact,
 } from '../hooks/useContacts'
 import {
-  useMessages,
   useCreateMessage,
   useUpdateMessage,
 } from '../hooks/useMessages'
-import { useActivity } from '../hooks/useActivity'
 import EmailComposer from '../components/messages/EmailComposer'
 import { COMPANY_STATUS_MAP, ROLE_TYPES_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
@@ -45,21 +42,15 @@ export default function CompanyDetail() {
   const addToast = useAppStore((s) => s.addToast)
 
   const { data: company, isLoading: loadingCompany } = useCompany(id)
-  const { data: contacts, isLoading: loadingContacts } = useContacts(id)
-  const { data: messages, isLoading: loadingMessages } = useMessages()
-  const { data: activity } = useActivity(50)
   const updateCompany = useUpdateCompany()
   const createContact = useCreateContact()
   const deleteContact = useDeleteContact()
   const createMessage = useCreateMessage()
   const updateMessage = useUpdateMessage()
 
-  const status = company
-    ? COMPANY_STATUS_MAP[company.status] || COMPANY_STATUS_MAP.new
-    : null
-
-  const companyMessages = messages?.filter((m) => m.company_id === id) || []
-  const companyActivity = activity?.filter((a) => a.company_id === id) || []
+  const contacts = company?.contacts || []
+  const companyMessages = company?.messages || []
+  const companyActivity = company?.activity || []
 
   const handleStatusChange = (newStatus) => {
     updateCompany.mutate(
@@ -89,6 +80,10 @@ export default function CompanyDetail() {
     addToast({ type: 'success', message: 'Email copiado' })
   }
 
+  const status = company
+    ? COMPANY_STATUS_MAP[company.status] || COMPANY_STATUS_MAP.new
+    : null
+
   if (loadingCompany) {
     return (
       <div>
@@ -97,7 +92,19 @@ export default function CompanyDetail() {
     )
   }
 
-  if (!company) return null
+  if (!company) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-lg text-slate-500">Empresa no encontrada</p>
+        <button
+          onClick={() => navigate('/app/companies')}
+          className="mt-4 text-sm text-primary-600 hover:text-primary-700 cursor-pointer"
+        >
+          Volver a empresas
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -126,7 +133,7 @@ export default function CompanyDetail() {
                 className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
               >
                 <ExternalLink size={14} />
-                {company.domain}
+                {company.domain || company.website}
               </a>
             )}
           </div>
@@ -153,8 +160,7 @@ export default function CompanyDetail() {
         <div className="p-6">
           {tab === 'contacts' && (
             <ContactsTab
-              contacts={contacts || []}
-              isLoading={loadingContacts}
+              contacts={contacts}
               onAdd={() => setShowContactForm(true)}
               onDelete={(contact) => {
                 if (confirm(`¿Eliminar a ${contact.first_name}?`)) {
@@ -171,7 +177,6 @@ export default function CompanyDetail() {
           {tab === 'messages' && (
             <MessagesTab
               messages={companyMessages}
-              isLoading={loadingMessages}
               onAdd={() => setShowMessageForm(true)}
               onMarkSent={(msg) => {
                 updateMessage.mutate(
@@ -248,8 +253,7 @@ export default function CompanyDetail() {
   )
 }
 
-function ContactsTab({ contacts, isLoading, onAdd, onDelete, onCopy }) {
-  if (isLoading) return <p className="text-sm text-slate-400">Cargando...</p>
+function ContactsTab({ contacts, onAdd, onDelete, onCopy }) {
   if (contacts.length === 0) {
     return (
       <EmptyState
@@ -331,8 +335,7 @@ function ContactsTab({ contacts, isLoading, onAdd, onDelete, onCopy }) {
   )
 }
 
-function MessagesTab({ messages, isLoading, onAdd, onMarkSent }) {
-  if (isLoading) return <p className="text-sm text-slate-400">Cargando...</p>
+function MessagesTab({ messages, onAdd, onMarkSent }) {
   if (messages.length === 0) {
     return (
       <EmptyState

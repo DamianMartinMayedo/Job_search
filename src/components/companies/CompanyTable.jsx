@@ -34,10 +34,11 @@ export default function CompanyTable({ companies, isLoading }) {
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 md:grid">
-        <div className="col-span-4">Empresa</div>
+        <div className="col-span-3">Empresa</div>
+        <div className="col-span-2">Email</div>
         <div className="col-span-2">Sector</div>
         <div className="col-span-2">Ciudad</div>
-        <div className="col-span-2">Estado</div>
+        <div className="col-span-1">Estado</div>
         <div className="col-span-2 text-right">Acciones</div>
       </div>
 
@@ -48,7 +49,7 @@ export default function CompanyTable({ companies, isLoading }) {
             key={company.id}
             className="grid grid-cols-1 gap-2 border-b border-slate-100 px-6 py-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-4"
           >
-            <div className="col-span-4">
+            <div className="col-span-3">
               <Link
                 to={`/app/companies/${company.id}`}
                 className="text-sm font-medium text-slate-900 hover:text-primary-600"
@@ -63,9 +64,12 @@ export default function CompanyTable({ companies, isLoading }) {
                   className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary-500"
                 >
                   <ExternalLink size={12} />
-                  {company.domain}
+                  {company.domain || company.website}
                 </a>
               )}
+            </div>
+            <div className="col-span-2 text-sm text-slate-600">
+              {company.primary_email || '—'}
             </div>
             <div className="col-span-2 text-sm text-slate-600">
               {company.sector || '—'}
@@ -73,7 +77,7 @@ export default function CompanyTable({ companies, isLoading }) {
             <div className="col-span-2 text-sm text-slate-600">
               {company.city || '—'}
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Badge className={status.color}>{status.label}</Badge>
             </div>
             <div className="col-span-2 flex justify-end gap-2">

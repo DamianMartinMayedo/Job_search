@@ -11,6 +11,7 @@ import {
   useCreateCompany,
   useUpdateCompany,
 } from '../hooks/useCompanies'
+import { useSettings } from '../hooks/useSettings'
 import { COMPANY_STATUS, SECTORS } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
@@ -25,8 +26,12 @@ export default function Companies() {
   const addToast = useAppStore((s) => s.addToast)
 
   const { data: companies, isLoading } = useCompanies(filters)
+  const { data: settings } = useSettings()
   const createCompany = useCreateCompany()
   const updateCompany = useUpdateCompany()
+
+  const customSectors = Array.isArray(settings?.custom_sectors) ? settings.custom_sectors : []
+  const allSectors = [...SECTORS.filter((s) => s !== 'Otro'), ...customSectors]
 
   const hasActiveFilters =
     filters.status || filters.sector || filters.city || filters.search
@@ -102,7 +107,7 @@ export default function Companies() {
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
         >
           <option value="">Todos los sectores</option>
-          {SECTORS.map((s) => (
+          {allSectors.map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -127,6 +132,7 @@ export default function Companies() {
       <GoogleSearchModal
         open={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
+        customSectors={customSectors}
       />
 
       <CompanyForm

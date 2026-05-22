@@ -31,13 +31,19 @@ async function handleCompanies(method, id, req) {
     const search = url.searchParams.get('search')
 
     const companies = await sql`
-      SELECT * FROM companies
+      SELECT c.*, ct.email as primary_email
+      FROM companies c
+      LEFT JOIN LATERAL (
+        SELECT email FROM contacts
+        WHERE company_id = c.id AND is_primary = true
+        LIMIT 1
+      ) ct ON true
       WHERE 1=1
-      ${status ? sql`AND status = ${status}` : sql``}
-      ${sector ? sql`AND sector = ${sector}` : sql``}
-      ${city ? sql`AND city = ${city}` : sql``}
-      ${search ? sql`AND (name ILIKE ${'%' + search + '%'} OR domain ILIKE ${'%' + search + '%'})` : sql``}
-      ORDER BY created_at DESC
+      ${status ? sql`AND c.status = ${status}` : sql``}
+      ${sector ? sql`AND c.sector = ${sector}` : sql``}
+      ${city ? sql`AND c.city = ${city}` : sql``}
+      ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
+      ORDER BY c.created_at DESC
     `
     return json(companies)
   }

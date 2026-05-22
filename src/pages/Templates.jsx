@@ -158,6 +158,7 @@ export default function Templates() {
       </div>
 
       <TemplateFormModal
+        key={editing?.id || 'new'}
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditing(null) }}
         template={editing}
@@ -201,9 +202,9 @@ export default function Templates() {
 
 function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) {
   const [form, setForm] = useState({
-    name: '',
-    subject: '',
-    body: '',
+    name: template?.name || '',
+    subject: template?.subject || '',
+    body: template?.body || '',
   })
 
   const handleChange = (field, value) => {
