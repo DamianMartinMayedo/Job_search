@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
-import { Plus, Search, Filter, X } from 'lucide-react'
+import { useState } from 'react'
+import { Plus, Search, X } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
-import Badge from '../components/ui/Badge'
 import CompanyTable from '../components/companies/CompanyTable'
 import GoogleSearchModal from '../components/companies/GoogleSearchModal'
 import CompanyForm from '../components/companies/CompanyForm'
@@ -26,25 +25,17 @@ export default function Companies() {
   const addToast = useAppStore((s) => s.addToast)
 
   const [sort, setSort] = useState({ field: 'created_at', dir: 'DESC' })
-  const [page, setPage] = useState(1)
-  const limit = 10
 
   const queryFilters = {
     ...filters,
-    page,
-    limit,
     sortBy: sort.field,
     sortDir: sort.dir,
   }
 
-  const { data, isLoading } = useCompanies(queryFilters)
+  const { data: companies, isLoading } = useCompanies(queryFilters)
   const { data: settings } = useSettings()
   const createCompany = useCreateCompany()
   const updateCompany = useUpdateCompany()
-
-  const companies = data?.companies || []
-  const total = data?.total || 0
-  const totalPages = Math.ceil(total / limit)
 
   const customSectors = Array.isArray(settings?.custom_sectors) ? settings.custom_sectors : []
   const allSectors = [...SECTORS.filter((s) => s !== 'Otro'), ...customSectors]
@@ -58,8 +49,6 @@ export default function Companies() {
       dir: prev.field === field && prev.dir === 'DESC' ? 'ASC' : 'DESC',
     }))
   }
-
-  useEffect(() => { setPage(1) }, [filters.status, filters.sector, filters.city, filters.search])
 
   const handleCreate = async (data) => {
     try {
@@ -157,42 +146,6 @@ export default function Companies() {
           sort={sort}
           onSort={handleSort}
         />
-        {totalPages > 1 && (
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
-              Mostrando {(page - 1) * limit + 1}–{Math.min(page * limit, total)} de {total}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Anterior
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPage(p)}
-                  className={`rounded-lg border px-3 py-1.5 text-sm cursor-pointer ${
-                    p === page
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-slate-300 text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 disabled:opacity-40 hover:bg-slate-50 cursor-pointer disabled:cursor-not-allowed"
-              >
-                Siguiente
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       <GoogleSearchModal

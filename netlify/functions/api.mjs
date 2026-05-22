@@ -29,26 +29,14 @@ async function handleCompanies(method, id, req) {
     const sector = url.searchParams.get('sector')
     const city = url.searchParams.get('city')
     const search = url.searchParams.get('search')
-    const page = parseInt(url.searchParams.get('page')) || 1
-    const limit = parseInt(url.searchParams.get('limit')) || 10
     const sortBy = url.searchParams.get('sortBy') || 'created_at'
     const sortDir = url.searchParams.get('sortDir') || 'DESC'
-    const offset = (page - 1) * limit
 
     const validSortCols = ['name', 'sector', 'city', 'status', 'created_at', 'primary_email']
     const col = validSortCols.includes(sortBy) ? sortBy : 'created_at'
     const dir = sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
-    const countResult = await sql`
-      SELECT COUNT(*) as total FROM companies c
-      WHERE 1=1
-      ${status ? sql`AND c.status = ${status}` : sql``}
-      ${sector ? sql`AND c.sector = ${sector}` : sql``}
-      ${city ? sql`AND c.city = ${city}` : sql``}
-      ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
-    `
-
-    const companies = await sql`
+    let query = `
       SELECT c.*, ct.email as primary_email
       FROM companies c
       LEFT JOIN LATERAL (
@@ -57,15 +45,16 @@ async function handleCompanies(method, id, req) {
         LIMIT 1
       ) ct ON true
       WHERE 1=1
-      ${status ? sql`AND c.status = ${status}` : sql``}
-      ${sector ? sql`AND c.sector = ${sector}` : sql``}
-      ${city ? sql`AND c.city = ${city}` : sql``}
-      ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
-      ORDER BY ${col} ${dir}
-      LIMIT ${limit}
-      OFFSET ${offset}
     `
-    return json({ companies, total: parseInt(countResult[0].total), page, limit })
+    const params = []
+    if (status) { params.push(status); query += ` AND c.status = $${params.length}` }
+    if (sector) { params.push(sector); query += ` AND c.sector = $${params.length}` }
+    if (city) { params.push(city); query += ` AND c.city = $${params.length}` }
+    if (search) { params.push(`%${search}%`); query += ` AND (c.name ILIKE $${params.length} OR c.domain ILIKE $${params.length})` }
+    query += ` ORDER BY ${col} ${dir}`
+
+    const companies = await sql.unsafe(query, params)
+    return json(companies)
   }
 
   if (method === 'GET' && id) {

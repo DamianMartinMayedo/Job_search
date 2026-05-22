@@ -10,8 +10,6 @@ export function useCompanies(filters = {}) {
       if (filters.sector) params.set('sector', filters.sector)
       if (filters.city) params.set('city', filters.city)
       if (filters.search) params.set('search', filters.search)
-      if (filters.page) params.set('page', filters.page)
-      if (filters.limit) params.set('limit', filters.limit)
       if (filters.sortBy) params.set('sortBy', filters.sortBy)
       if (filters.sortDir) params.set('sortDir', filters.sortDir)
       const qs = params.toString()
