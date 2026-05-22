@@ -18,6 +18,7 @@ import {
   useUpdateMessage,
 } from '../hooks/useMessages'
 import { useActivity } from '../hooks/useActivity'
+import EmailComposer from '../components/messages/EmailComposer'
 import { COMPANY_STATUS_MAP, ROLE_TYPES_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
@@ -227,10 +228,11 @@ export default function CompanyDetail() {
       )}
 
       {showMessageForm && (
-        <MessageFormModal
-          companyId={id}
-          contacts={contacts || []}
+        <EmailComposer
+          open={showMessageForm}
           onClose={() => setShowMessageForm(false)}
+          company={company}
+          contacts={contacts || []}
           onSubmit={(data) => {
             createMessage.mutate(data, {
               onSuccess: () => {
@@ -517,88 +519,6 @@ function ContactFormModal({ companyId, onClose, onSubmit, isSubmitting }) {
             </Button>
             <Button type="submit" disabled={isSubmitting || !form.first_name.trim()}>
               {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </Button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-function MessageFormModal({ companyId, contacts, onClose, onSubmit, isSubmitting }) {
-  const [form, setForm] = useState({
-    company_id: companyId,
-    contact_id: '',
-    subject: '',
-    body: '',
-    status: 'draft',
-  })
-
-  const handleChange = (field, value) => {
-    setForm((f) => ({ ...f, [field]: value }))
-  }
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    if (!form.subject.trim() || !form.body.trim()) return
-    onSubmit(form)
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Crear mensaje
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
-              Destinatario
-            </label>
-            <select
-              value={form.contact_id}
-              onChange={(e) => handleChange('contact_id', e.target.value || null)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
-            >
-              <option value="">Sin contacto específico</option>
-              {contacts.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name} ({c.role || 'Sin rol'})
-                </option>
-              ))}
-            </select>
-          </div>
-          <Input
-            label="Asunto *"
-            value={form.subject}
-            onChange={(e) => handleChange('subject', e.target.value)}
-            required
-          />
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
-              Cuerpo del email *
-            </label>
-            <textarea
-              value={form.body}
-              onChange={(e) => handleChange('body', e.target.value)}
-              className="min-h-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden resize-y"
-              required
-            />
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Guardando...' : 'Guardar borrador'}
             </Button>
           </div>
         </form>
