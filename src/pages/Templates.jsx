@@ -39,7 +39,8 @@ export default function Templates() {
       setFormOpen(false)
       setEditing(null)
     } catch (err) {
-      addToast({ type: 'error', message: err.message })
+      console.error('Template save error:', err)
+      addToast({ type: 'error', message: err.message || 'Error al guardar la plantilla' })
     }
   }
 

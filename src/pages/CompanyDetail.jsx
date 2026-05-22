@@ -41,7 +41,7 @@ export default function CompanyDetail() {
 
   const addToast = useAppStore((s) => s.addToast)
 
-  const { data: company, isLoading: loadingCompany } = useCompany(id)
+  const { data: company, isLoading: loadingCompany, error: companyError } = useCompany(id)
   const updateCompany = useUpdateCompany()
   const createContact = useCreateContact()
   const deleteContact = useDeleteContact()
@@ -60,6 +60,11 @@ export default function CompanyDetail() {
           addToast({
             type: 'success',
             message: `Estado cambiado a "${newStatus}"`,
+          }),
+        onError: (err) =>
+          addToast({
+            type: 'error',
+            message: `Error al cambiar estado: ${err.message}`,
           }),
       }
     )
@@ -92,15 +97,29 @@ export default function CompanyDetail() {
     )
   }
 
+  if (companyError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-lg text-red-500">Error al cargar: {companyError.message}</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="mt-4 text-sm text-primary-600 hover:text-primary-700 cursor-pointer"
+        >
+          Volver atrás
+        </button>
+      </div>
+    )
+  }
+
   if (!company) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <p className="text-lg text-slate-500">Empresa no encontrada</p>
         <button
-          onClick={() => navigate('/app/companies')}
+          onClick={() => navigate(-1)}
           className="mt-4 text-sm text-primary-600 hover:text-primary-700 cursor-pointer"
         >
-          Volver a empresas
+          Volver atrás
         </button>
       </div>
     )
@@ -109,11 +128,11 @@ export default function CompanyDetail() {
   return (
     <div>
       <button
-        onClick={() => navigate('/app/companies')}
+        onClick={() => navigate(-1)}
         className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 cursor-pointer"
       >
         <ArrowLeft size={16} />
-        Volver a empresas
+        Volver atrás
       </button>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

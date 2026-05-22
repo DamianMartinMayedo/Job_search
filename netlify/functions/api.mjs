@@ -29,6 +29,24 @@ async function handleCompanies(method, id, req) {
     const sector = url.searchParams.get('sector')
     const city = url.searchParams.get('city')
     const search = url.searchParams.get('search')
+    const page = parseInt(url.searchParams.get('page')) || 1
+    const limit = parseInt(url.searchParams.get('limit')) || 10
+    const sortBy = url.searchParams.get('sortBy') || 'created_at'
+    const sortDir = url.searchParams.get('sortDir') || 'DESC'
+    const offset = (page - 1) * limit
+
+    const validSortCols = ['name', 'sector', 'city', 'status', 'created_at', 'primary_email']
+    const col = validSortCols.includes(sortBy) ? sortBy : 'created_at'
+    const dir = sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
+
+    const countResult = await sql`
+      SELECT COUNT(*) as total FROM companies c
+      WHERE 1=1
+      ${status ? sql`AND c.status = ${status}` : sql``}
+      ${sector ? sql`AND c.sector = ${sector}` : sql``}
+      ${city ? sql`AND c.city = ${city}` : sql``}
+      ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
+    `
 
     const companies = await sql`
       SELECT c.*, ct.email as primary_email
@@ -43,9 +61,11 @@ async function handleCompanies(method, id, req) {
       ${sector ? sql`AND c.sector = ${sector}` : sql``}
       ${city ? sql`AND c.city = ${city}` : sql``}
       ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
-      ORDER BY c.created_at DESC
+      ORDER BY ${sql(col)} ${sql(dir)}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `
-    return json(companies)
+    return json({ companies, total: parseInt(countResult[0].total), page, limit })
   }
 
   if (method === 'GET' && id) {

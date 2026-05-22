@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Building2, ExternalLink, Trash2 } from 'lucide-react'
+import { Building2, ExternalLink, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import Badge from '../ui/Badge'
 import EmptyState from '../ui/EmptyState'
 import { SkeletonRow } from '../ui/Skeleton'
@@ -7,7 +7,24 @@ import { COMPANY_STATUS_MAP } from '../../utils/constants'
 import { useDeleteCompany } from '../../hooks/useCompanies'
 import useAppStore from '../../store/useAppStore'
 
-export default function CompanyTable({ companies, isLoading }) {
+function SortHeader({ label, field, sort, onSort }) {
+  const isActive = sort.field === field
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-slate-500 hover:text-slate-700 cursor-pointer"
+    >
+      {label}
+      {isActive ? (
+        sort.dir === 'ASC' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+      ) : (
+        <ArrowDown size={12} className="opacity-20" />
+      )}
+    </button>
+  )
+}
+
+export default function CompanyTable({ companies, isLoading, sort, onSort }) {
   const deleteCompany = useDeleteCompany()
   const addToast = useAppStore((s) => s.addToast)
 
@@ -33,12 +50,20 @@ export default function CompanyTable({ companies, isLoading }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 md:grid">
-        <div className="col-span-3">Empresa</div>
+      <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 md:grid">
+        <div className="col-span-3">
+          <SortHeader label="Empresa" field="name" sort={sort} onSort={onSort} />
+        </div>
         <div className="col-span-2">Email</div>
-        <div className="col-span-2">Sector</div>
-        <div className="col-span-2">Ciudad</div>
-        <div className="col-span-1">Estado</div>
+        <div className="col-span-2">
+          <SortHeader label="Sector" field="sector" sort={sort} onSort={onSort} />
+        </div>
+        <div className="col-span-2">
+          <SortHeader label="Ciudad" field="city" sort={sort} onSort={onSort} />
+        </div>
+        <div className="col-span-1">
+          <SortHeader label="Estado" field="status" sort={sort} onSort={onSort} />
+        </div>
         <div className="col-span-2 text-right">Acciones</div>
       </div>
 
