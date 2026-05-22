@@ -1,0 +1,44 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '../lib/api'
+
+export function useContacts(companyId) {
+  return useQuery({
+    queryKey: ['contacts', companyId],
+    queryFn: () => api.get(`/contacts${companyId ? '?company_id=' + companyId : ''}`),
+    enabled: !!companyId,
+  })
+}
+
+export function useAllContacts() {
+  return useQuery({
+    queryKey: ['contacts', 'all'],
+    queryFn: () => api.get('/contacts'),
+  })
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/contacts', data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['contacts'] })
+      qc.invalidateQueries({ queryKey: ['company', vars.company_id] })
+    },
+  })
+}
+
+export function useUpdateContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/contacts/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contacts'] }),
+  })
+}
+
+export function useDeleteContact() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => api.delete(`/contacts/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contacts'] }),
+  })
+}
