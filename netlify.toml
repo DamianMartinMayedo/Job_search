@@ -3,6 +3,10 @@
   functions = "netlify/functions"
   publish = "dist"
 
+[dev]
+  command = "vite"
+  targetPort = 5173
+
 [[redirects]]
   from = "/api/auth/*"
   to = "/.netlify/functions/auth"
