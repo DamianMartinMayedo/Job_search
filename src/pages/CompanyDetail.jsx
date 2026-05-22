@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Copy, Pencil, Trash2, Plus, Mail } from 'lucide-react'
 import Tabs from '../components/ui/Tabs'
@@ -36,6 +36,10 @@ export default function CompanyDetail() {
   const [showMessageForm, setShowMessageForm] = useState(false)
   const [notes, setNotes] = useState('')
   const [notesTimer, setNotesTimer] = useState(null)
+
+  useEffect(() => {
+    if (company?.notes) setNotes(company.notes)
+  }, [company?.notes])
 
   const addToast = useAppStore((s) => s.addToast)
 

@@ -1,9 +1,10 @@
-import { Building2, Users, Mail, CalendarClock, Clock } from 'lucide-react'
+import { Building2, Users, Mail, CalendarClock } from 'lucide-react'
 import { useCompanies } from '../hooks/useCompanies'
 import { useMessages } from '../hooks/useMessages'
 import { useActivity } from '../hooks/useActivity'
+import FollowUpAlert from '../components/messages/FollowUpAlert'
 import { SkeletonCard } from '../components/ui/Skeleton'
-import { COMPANY_STATUS_MAP, MESSAGE_STATUS_MAP } from '../utils/constants'
+import { COMPANY_STATUS_MAP } from '../utils/constants'
 
 const kpiCards = [
   { label: 'Empresas nuevas', status: 'new', icon: Building2, color: 'text-blue-600 bg-blue-50' },
@@ -46,6 +47,8 @@ export default function Dashboard() {
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
       <p className="mt-1 text-sm text-slate-500">Resumen de tu búsqueda de empleo</p>
+
+      <FollowUpAlert />
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiCards.map((card) => {
