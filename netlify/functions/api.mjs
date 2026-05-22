@@ -61,7 +61,7 @@ async function handleCompanies(method, id, req) {
       ${sector ? sql`AND c.sector = ${sector}` : sql``}
       ${city ? sql`AND c.city = ${city}` : sql``}
       ${search ? sql`AND (c.name ILIKE ${'%' + search + '%'} OR c.domain ILIKE ${'%' + search + '%'})` : sql``}
-      ORDER BY ${sql(col)} ${sql(dir)}
+      ORDER BY ${col} ${dir}
       LIMIT ${limit}
       OFFSET ${offset}
     `

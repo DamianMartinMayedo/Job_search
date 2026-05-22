@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, X } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -58,6 +58,8 @@ export default function Companies() {
       dir: prev.field === field && prev.dir === 'DESC' ? 'ASC' : 'DESC',
     }))
   }
+
+  useEffect(() => { setPage(1) }, [filters.status, filters.sector, filters.city, filters.search])
 
   const handleCreate = async (data) => {
     try {
