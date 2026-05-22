@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Building2, ExternalLink, Trash2 } from 'lucide-react'
 import Badge from '../ui/Badge'
-import Button from '../ui/Button'
 import EmptyState from '../ui/EmptyState'
 import { SkeletonRow } from '../ui/Skeleton'
 import { COMPANY_STATUS_MAP } from '../../utils/constants'

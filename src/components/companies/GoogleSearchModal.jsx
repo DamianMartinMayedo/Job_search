@@ -1,15 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Plus, Loader2, Check } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import { searchPlaces } from '../../lib/googlePlaces'
 import { useCreateCompany } from '../../hooks/useCompanies'
+import { SECTORS } from '../../utils/constants'
 import useAppStore from '../../store/useAppStore'
 
 export default function GoogleSearchModal({ open, onClose }) {
   const [query, setQuery] = useState('')
   const [city, setCity] = useState('')
+  const [sector, setSector] = useState('')
+  const [customSector, setCustomSector] = useState('')
   const [results, setResults] = useState([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState(new Set())
@@ -18,13 +21,16 @@ export default function GoogleSearchModal({ open, onClose }) {
   const createCompany = useCreateCompany()
   const addToast = useAppStore((s) => s.addToast)
 
+  const showCustomInput = sector === 'Otro'
+
   const handleSearch = async () => {
-    if (!query || !city) return
+    const searchQuery = showCustomInput ? customSector : sector
+    if (!searchQuery || !city) return
     setSearching(true)
     setResults([])
     setSelected(new Set())
     try {
-      const places = await searchPlaces(query, city)
+      const places = await searchPlaces(searchQuery, city)
       setResults(places)
       setSelected(new Set(places.map((_, i) => i)))
     } catch (err) {
@@ -58,6 +64,9 @@ export default function GoogleSearchModal({ open, onClose }) {
     setAdding(true)
     let added = 0
     let skipped = 0
+    const errors = []
+
+    const finalSector = showCustomInput ? customSector : sector
 
     for (const place of toAdd) {
       const domain = place.website
@@ -68,6 +77,7 @@ export default function GoogleSearchModal({ open, onClose }) {
           name: place.name,
           domain,
           website: place.website,
+          sector: finalSector,
           city: city,
           phone: place.phone,
           source: 'google_places',
@@ -77,7 +87,7 @@ export default function GoogleSearchModal({ open, onClose }) {
         if (err.message.includes('dominio')) {
           skipped++
         } else {
-          addToast({ type: 'error', message: `${place.name}: ${err.message}` })
+          errors.push(place.name)
         }
       }
     }
@@ -92,6 +102,12 @@ export default function GoogleSearchModal({ open, onClose }) {
       addToast({
         type: 'warning',
         message: `${skipped} ya existía${skipped > 1 ? 'n' : ''} (mismo dominio)`,
+      })
+    }
+    if (errors.length > 0) {
+      addToast({
+        type: 'error',
+        message: `Error al añadir: ${errors.slice(0, 3).join(', ')}${errors.length > 3 ? '...' : ''}`,
       })
     }
 
@@ -112,14 +128,21 @@ export default function GoogleSearchModal({ open, onClose }) {
   return (
     <Modal open={open} onClose={handleClose} title="Buscar empresas" size="lg">
       <div className="flex flex-col gap-4">
-        <div className="flex gap-3">
-          <div className="flex-1">
-            <Input
-              label="Tipo de empresa"
-              placeholder="estudio de diseño, consultora IT..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Sector</label>
+            <select
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            >
+              <option value="">Seleccionar...</option>
+              {SECTORS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex-1">
             <Input
@@ -130,7 +153,20 @@ export default function GoogleSearchModal({ open, onClose }) {
             />
           </div>
         </div>
-        <Button onClick={handleSearch} disabled={searching || !query || !city}>
+
+        {showCustomInput && (
+          <Input
+            label="Escribe el sector"
+            placeholder="ej: Agencia de branding"
+            value={customSector}
+            onChange={(e) => setCustomSector(e.target.value)}
+          />
+        )}
+
+        <Button
+          onClick={handleSearch}
+          disabled={searching || !city || (!showCustomInput && !sector) || (showCustomInput && !customSector)}
+        >
           {searching ? (
             <>
               <Loader2 size={18} className="animate-spin" />
@@ -146,7 +182,7 @@ export default function GoogleSearchModal({ open, onClose }) {
 
         {results.length === 0 && !searching && (
           <p className="text-center text-sm text-slate-400">
-            Escribe un tipo de empresa y una ciudad para buscar
+            Selecciona un sector y una ciudad para buscar
           </p>
         )}
 
