@@ -7,6 +7,14 @@ async function request(path, options = {}) {
     ...options,
   })
 
+  const contentType = res.headers.get('content-type')
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text()
+    throw new Error(
+      `Respuesta inesperada del servidor (${res.status}): ${text.slice(0, 100)}`
+    )
+  }
+
   const data = await res.json()
 
   if (!res.ok) {
