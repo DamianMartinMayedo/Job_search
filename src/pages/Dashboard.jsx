@@ -18,7 +18,6 @@ export default function Dashboard() {
   const { data: messages, isLoading: loadingMessages } = useMessages('follow_up')
   const { data: activity, isLoading: loadingActivity } = useActivity(10)
 
-  const today = new Date().toISOString().split('T')[0]
   const followUpCount = messages?.length || 0
 
   const isLoading = loadingCompanies || loadingMessages

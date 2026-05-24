@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { FileText, Plus, Pencil, Trash2, Eye } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Input from '../components/ui/Input'
 import EmptyState from '../components/ui/EmptyState'
+import ConfirmModal from '../components/ui/ConfirmModal'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import {
   useTemplates,
@@ -19,6 +20,7 @@ export default function Templates() {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [previewTemplate, setPreviewTemplate] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const { data: templates, isLoading } = useTemplates()
   const { data: settings } = useSettings()
@@ -45,11 +47,7 @@ export default function Templates() {
   }
 
   const handleDelete = (template) => {
-    if (confirm(`¿Eliminar "${template.name}"?`)) {
-      deleteTemplate.mutate(template.id, {
-        onSuccess: () => addToast({ type: 'success', message: 'Plantilla eliminada' }),
-      })
-    }
+    setDeleteTarget(template)
   }
 
   const handlePreview = (template) => {
@@ -75,88 +73,87 @@ export default function Templates() {
     return result
   }
 
-  if (isLoading) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <SkeletonRow key={i} columns={3} />
-        ))}
-      </div>
-    )
-  }
-
-  if (!templates || templates.length === 0) {
-    return (
-      <EmptyState
-        icon={FileText}
-        title="Sin plantillas"
-        description="Crea tu primera plantilla de email"
-        action={
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus size={18} />
-            Crear plantilla
-          </Button>
-        }
-      />
-    )
-  }
+  const hasTemplates = templates && templates.length > 0
 
   return (
+    <>
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Plantillas</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {templates.length} plantillas
-          </p>
+      {isLoading ? (
+        <div className="rounded-xl border border-slate-200 bg-white">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <SkeletonRow key={i} columns={3} />
+          ))}
         </div>
-        <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
-          <Plus size={18} />
-          Nueva plantilla
-        </Button>
-      </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {templates.map((t) => (
-          <div
-            key={t.id}
-            className="rounded-xl border border-slate-200 bg-white p-5"
-          >
-            <h3 className="text-base font-semibold text-slate-900">
-              {t.name}
-            </h3>
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-              {t.subject}
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handlePreview(t)}
-              >
-                <Eye size={16} />
-                Vista previa
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setEditing(t); setFormOpen(true) }}
-              >
-                <Pencil size={16} />
-                Editar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => handleDelete(t)}
-                className="text-red-500 hover:bg-red-50 hover:text-red-600"
-              >
-                <Trash2 size={16} />
-              </Button>
+      ) : hasTemplates ? (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Plantillas</h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {templates.length} plantillas
+              </p>
             </div>
+            <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
+              <Plus size={18} />
+              Nueva plantilla
+            </Button>
           </div>
-        ))}
-      </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                className="rounded-xl border border-slate-200 bg-white p-5"
+              >
+                <h3 className="text-base font-semibold text-slate-900">
+                  {t.name}
+                </h3>
+                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                  {t.subject}
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handlePreview(t)}
+                  >
+                    <Eye size={16} />
+                    Vista previa
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setEditing(t); setFormOpen(true) }}
+                  >
+                    <Pencil size={16} />
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(t)}
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <EmptyState
+          icon={FileText}
+          title="Sin plantillas"
+          description="Crea tu primera plantilla de email"
+          action={
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus size={18} />
+              Crear plantilla
+            </Button>
+          }
+        />
+      )}
 
       <TemplateFormModal
         key={editing?.id || 'new'}
@@ -197,7 +194,31 @@ export default function Templates() {
           </div>
         )}
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar plantilla"
+        message={`¿Eliminar "${deleteTarget?.name}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={deleteTemplate.isPending}
+        onConfirm={() => {
+          if (!deleteTarget) return
+          deleteTemplate.mutate(deleteTarget.id, {
+            onSuccess: () => {
+              addToast({ type: 'success', message: 'Plantilla eliminada' })
+              setDeleteTarget(null)
+            },
+            onError: (err) => {
+              addToast({ type: 'error', message: `Error: ${err.message}` })
+              setDeleteTarget(null)
+            },
+          })
+        }}
+      />
     </div>
+    </>
   )
 }
 
@@ -207,9 +228,26 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
     subject: template?.subject || '',
     body: template?.body || '',
   })
+  const bodyRef = useRef(null)
 
   const handleChange = (field, value) => {
     setForm((f) => ({ ...f, [field]: value }))
+  }
+
+  const insertPlaceholder = (placeholder) => {
+    const el = bodyRef.current
+    if (!el) {
+      handleChange('body', form.body + placeholder)
+      return
+    }
+    const start = el.selectionStart
+    const end = el.selectionEnd
+    const newBody = form.body.slice(0, start) + placeholder + form.body.slice(end)
+    handleChange('body', newBody)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(start + placeholder.length, start + placeholder.length)
+    })
   }
 
   const handleSubmit = (e) => {
@@ -255,6 +293,7 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
             Cuerpo del email *
           </label>
           <textarea
+            ref={bodyRef}
             value={form.body}
             onChange={(e) => handleChange('body', e.target.value)}
             className="min-h-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden resize-y"
@@ -264,8 +303,8 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
             {placeholders.map((p) => (
               <button
                 key={p}
-                type="button"
-                onClick={() => handleChange('body', form.body + p)}
+                  type="button"
+                    onClick={() => insertPlaceholder(p)}
                 className="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600 hover:bg-slate-200 cursor-pointer"
               >
                 {p}

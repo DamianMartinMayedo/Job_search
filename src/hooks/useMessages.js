@@ -23,6 +23,20 @@ export function useUpdateMessage() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => api.patch(`/messages/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['messages'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['messages'] })
+      qc.invalidateQueries({ queryKey: ['company'] })
+    },
+  })
+}
+
+export function useDeleteMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id) => api.delete(`/messages/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['messages'] })
+      qc.invalidateQueries({ queryKey: ['company'] })
+    },
   })
 }

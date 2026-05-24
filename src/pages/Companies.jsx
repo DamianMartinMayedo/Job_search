@@ -163,6 +163,7 @@ export default function Companies() {
         company={editingCompany}
         onSubmit={editingCompany ? handleUpdate : handleCreate}
         isSubmitting={createCompany.isPending || updateCompany.isPending}
+        allSectors={allSectors}
       />
     </div>
   )

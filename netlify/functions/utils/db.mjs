@@ -11,6 +11,7 @@ const sql = databaseUrl
       max: 1,
       idle_timeout: 10,
       connect_timeout: 5,
+      prepare: false,
     })
   : null
 

@@ -63,9 +63,11 @@ async function handleCompanies(method, id, req) {
 
     const contacts = await sql`SELECT * FROM contacts WHERE company_id = ${id} ORDER BY created_at DESC`
     const messages = await sql`
-      SELECT m.*, c.first_name as contact_first_name, c.role as contact_role
+      SELECT m.*, c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
+             et.name as template_name
       FROM messages m
       LEFT JOIN contacts c ON m.contact_id = c.id
+      LEFT JOIN email_templates et ON m.template_id = et.id
       WHERE m.company_id = ${id}
       ORDER BY m.created_at DESC
     `
@@ -214,10 +216,12 @@ async function handleMessages(method, id, req) {
 
     const messages = await sql`
       SELECT m.*, co.name as company_name, co.sector,
-             c.first_name as contact_first_name, c.role as contact_role
+             c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
+             et.name as template_name
       FROM messages m
       JOIN companies co ON m.company_id = co.id
       LEFT JOIN contacts c ON m.contact_id = c.id
+      LEFT JOIN email_templates et ON m.template_id = et.id
       ${status === 'follow_up'
         ? sql`WHERE m.follow_up_at <= ${today} AND m.follow_up_done = false`
         : status
@@ -299,6 +303,22 @@ async function handleMessages(method, id, req) {
     }
 
     return json(message)
+  }
+
+  if (method === 'DELETE' && id) {
+    const [message] = await sql`DELETE FROM messages WHERE id = ${id} RETURNING id, company_id`
+    if (!message) return notFound()
+
+    await sql`
+      INSERT INTO activity_log ${sql({
+        company_id: message.company_id,
+        type: 'status_change',
+        description: 'Mensaje eliminado',
+        metadata: JSON.stringify({ message_id: id }),
+      }, 'company_id', 'type', 'description', 'metadata')}
+    `
+
+    return json({ ok: true })
   }
 
   return json({ error: 'Method not allowed' }, 405)
@@ -444,6 +464,9 @@ async function handlePlaces(req) {
   )
 
   const data = await response.json()
+  if (!response.ok) {
+    return error(data?.error?.message || 'Error en la búsqueda de Google Places', response.status)
+  }
   return json(data)
 }
 

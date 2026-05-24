@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Building2, ExternalLink, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
 import Badge from '../ui/Badge'
 import EmptyState from '../ui/EmptyState'
 import { SkeletonRow } from '../ui/Skeleton'
+import ConfirmModal from '../ui/ConfirmModal'
 import { COMPANY_STATUS_MAP } from '../../utils/constants'
 import { useDeleteCompany } from '../../hooks/useCompanies'
 import useAppStore from '../../store/useAppStore'
@@ -27,6 +29,7 @@ function SortHeader({ label, field, sort, onSort }) {
 export default function CompanyTable({ companies, isLoading, sort, onSort }) {
   const deleteCompany = useDeleteCompany()
   const addToast = useAppStore((s) => s.addToast)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   if (isLoading) {
     return (
@@ -49,6 +52,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
   }
 
   return (
+    <>
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
       <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 md:grid">
         <div className="col-span-3">
@@ -94,7 +98,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               )}
             </div>
             <div className="col-span-2 text-sm text-slate-600">
-              {company.primary_email || '—'}
+              {company.email || company.primary_email || '—'}
             </div>
             <div className="col-span-2 text-sm text-slate-600">
               {company.sector || '—'}
@@ -113,17 +117,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
                 Ver
               </Link>
               <button
-                onClick={() => {
-                  if (confirm(`¿Eliminar ${company.name}?`)) {
-                    deleteCompany.mutate(company.id, {
-                      onSuccess: () =>
-                        addToast({
-                          type: 'success',
-                          message: `${company.name} eliminada`,
-                        }),
-                    })
-                  }
-                }}
+                onClick={() => setDeleteTarget(company)}
                 className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
               >
                 <Trash2 size={14} />
@@ -133,5 +127,29 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
         )
       })}
     </div>
+
+    <ConfirmModal
+      open={!!deleteTarget}
+      onClose={() => setDeleteTarget(null)}
+      title="Eliminar empresa"
+      message={`¿Eliminar ${deleteTarget?.name}? Esta acción no se puede deshacer.`}
+      confirmLabel="Eliminar"
+      danger
+      isSubmitting={deleteCompany.isPending}
+      onConfirm={() => {
+        if (!deleteTarget) return
+        deleteCompany.mutate(deleteTarget.id, {
+          onSuccess: () => {
+            addToast({ type: 'success', message: `${deleteTarget.name} eliminada` })
+            setDeleteTarget(null)
+          },
+          onError: (err) => {
+            addToast({ type: 'error', message: `Error al eliminar: ${err.message}` })
+            setDeleteTarget(null)
+          },
+        })
+      }}
+    />
+    </>
   )
 }

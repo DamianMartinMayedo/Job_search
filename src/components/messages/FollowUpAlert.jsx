@@ -44,6 +44,11 @@ export default function FollowUpAlert() {
                             type: 'success',
                             message: 'Seguimiento marcado como hecho',
                           }),
+                        onError: (err) =>
+                          addToast({
+                            type: 'error',
+                            message: `Error: ${err.message}`,
+                          }),
                       }
                     )
                   }}

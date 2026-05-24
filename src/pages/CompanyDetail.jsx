@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Copy, Pencil, Trash2, Plus, Mail } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send } from 'lucide-react'
 import Tabs from '../components/ui/Tabs'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
+import ConfirmModal from '../components/ui/ConfirmModal'
+import PromptModal from '../components/ui/PromptModal'
 import { SkeletonCard } from '../components/ui/Skeleton'
 import { useCompany, useUpdateCompany } from '../hooks/useCompanies'
 import {
@@ -14,9 +16,11 @@ import {
 import {
   useCreateMessage,
   useUpdateMessage,
+  useDeleteMessage,
 } from '../hooks/useMessages'
+import Input from '../components/ui/Input'
 import EmailComposer from '../components/messages/EmailComposer'
-import { COMPANY_STATUS_MAP, ROLE_TYPES_MAP } from '../utils/constants'
+import { COMPANY_STATUS_MAP, ROLE_TYPES_MAP, MESSAGE_STATUS_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
 const tabDefs = [
@@ -33,11 +37,9 @@ export default function CompanyDetail() {
   const [showContactForm, setShowContactForm] = useState(false)
   const [showMessageForm, setShowMessageForm] = useState(false)
   const [notes, setNotes] = useState('')
-  const [notesTimer, setNotesTimer] = useState(null)
-
-  useEffect(() => {
-    if (company?.notes) setNotes(company.notes)
-  }, [company?.notes])
+  const notesTimerRef = useRef(null)
+  const [emailModal, setEmailModal] = useState({ open: false, value: '' })
+  const [deleteContactTarget, setDeleteContactTarget] = useState(null)
 
   const addToast = useAppStore((s) => s.addToast)
 
@@ -47,6 +49,19 @@ export default function CompanyDetail() {
   const deleteContact = useDeleteContact()
   const createMessage = useCreateMessage()
   const updateMessage = useUpdateMessage()
+  const deleteMessage = useDeleteMessage()
+
+  const [emailConfirm, setEmailConfirm] = useState(null)
+
+  useEffect(() => {
+    if (company?.notes) setNotes(company.notes)
+  }, [company?.notes])
+
+  useEffect(() => {
+    return () => {
+      if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    }
+  }, [])
 
   const contacts = company?.contacts || []
   const companyMessages = company?.messages || []
@@ -72,16 +87,16 @@ export default function CompanyDetail() {
 
   const handleNotesChange = (value) => {
     setNotes(value)
-    if (notesTimer) clearTimeout(notesTimer)
-    setNotesTimer(
-      setTimeout(() => {
-        updateCompany.mutate({ id, data: { notes: value } })
-      }, 1500)
-    )
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
+    notesTimerRef.current = setTimeout(() => {
+      updateCompany.mutate({ id, data: { notes: value } })
+    }, 1500)
   }
 
   const handleCopyEmail = (email) => {
-    navigator.clipboard.writeText(email)
+    navigator.clipboard.writeText(email).catch(() => {
+      addToast({ type: 'error', message: 'Error al copiar email' })
+    })
     addToast({ type: 'success', message: 'Email copiado' })
   }
 
@@ -126,6 +141,7 @@ export default function CompanyDetail() {
   }
 
   return (
+    <>
     <div>
       <button
         onClick={() => navigate(-1)}
@@ -156,6 +172,28 @@ export default function CompanyDetail() {
               </a>
             )}
           </div>
+          <div className="mt-2 flex items-center gap-2">
+            {company.email ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">{company.email}</span>
+                <button
+                  onClick={() => setEmailModal({ open: true, value: company.email })}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar email"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEmailModal({ open: true, value: '' })}
+                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+              >
+                <Plus size={14} />
+                Añadir email
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -174,21 +212,25 @@ export default function CompanyDetail() {
       </div>
 
       <div className="mt-6 rounded-xl border border-slate-200 bg-white">
-        <Tabs tabs={tabDefs} activeTab={tab} onTabChange={setTab} />
+        <div className="flex items-center justify-between border-b border-slate-200 pr-4">
+          <Tabs tabs={tabDefs} activeTab={tab} onTabChange={setTab} />
+          {(tab === 'contacts' || tab === 'messages') && (
+            <Button
+              size="sm"
+              onClick={() => tab === 'contacts' ? setShowContactForm(true) : setShowMessageForm(true)}
+            >
+              <Plus size={16} />
+              {tab === 'contacts' ? 'Añadir contacto' : 'Crear mensaje'}
+            </Button>
+          )}
+        </div>
 
         <div className="p-6">
           {tab === 'contacts' && (
             <ContactsTab
               contacts={contacts}
               onAdd={() => setShowContactForm(true)}
-              onDelete={(contact) => {
-                if (confirm(`¿Eliminar a ${contact.first_name}?`)) {
-                  deleteContact.mutate(contact.id, {
-                    onSuccess: () =>
-                      addToast({ type: 'success', message: 'Contacto eliminado' }),
-                  })
-                }
-              }}
+              onDelete={(contact) => setDeleteContactTarget(contact)}
               onCopy={handleCopyEmail}
             />
           )}
@@ -196,16 +238,35 @@ export default function CompanyDetail() {
           {tab === 'messages' && (
             <MessagesTab
               messages={companyMessages}
+              companyEmail={company?.email}
+              contactEmails={contacts?.filter(c => c.email).map(c => ({ name: `${c.first_name} ${c.last_name || ''}`, email: c.email })) || []}
               onAdd={() => setShowMessageForm(true)}
-              onMarkSent={(msg) => {
+              onStatusChange={(msg, newStatus) => {
+                const data = { status: newStatus }
+                if (newStatus === 'sent') data.sent_at = new Date().toISOString()
+                if (newStatus === 'replied') data.replied_at = new Date().toISOString()
+                if (newStatus === 'closed') data.follow_up_done = true
                 updateMessage.mutate(
-                  { id: msg.id, data: { status: 'sent' } },
+                  { id: msg.id, data },
                   {
                     onSuccess: () =>
-                      addToast({ type: 'success', message: 'Marcado como enviado' }),
+                      addToast({ type: 'success', message: `Estado cambiado a "${MESSAGE_STATUS_MAP[newStatus]?.label || newStatus}"` }),
+                    onError: (err) =>
+                      addToast({ type: 'error', message: `Error: ${err.message}` }),
                   }
                 )
               }}
+              onSend={(msg) => {
+                const to = msg.contact_email || msg.recipient_email || company?.email || 'sin destinatario'
+                setEmailConfirm({ id: msg.id, recipient: to })
+              }}
+              onDelete={(msg) => {
+                deleteMessage.mutate(msg.id, {
+                  onSuccess: () => addToast({ type: 'success', message: 'Mensaje eliminado' }),
+                  onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+                })
+              }}
+              isMutating={updateMessage.isPending || deleteMessage.isPending}
             />
           )}
 
@@ -245,6 +306,8 @@ export default function CompanyDetail() {
                   message: `${data.first_name} añadido`,
                 })
               },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
             })
           }}
           isSubmitting={createContact.isPending}
@@ -261,14 +324,88 @@ export default function CompanyDetail() {
             createMessage.mutate(data, {
               onSuccess: () => {
                 setShowMessageForm(false)
-                addToast({ type: 'success', message: 'Mensaje creado' })
+                const wasSent = data.status === 'sent'
+                addToast({ type: 'success', message: wasSent ? 'Mensaje enviado' : 'Borrador guardado' })
               },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
             })
           }}
           isSubmitting={createMessage.isPending}
         />
       )}
+
+      <PromptModal
+        open={emailModal.open}
+        onClose={() => setEmailModal({ open: false, value: '' })}
+        title={company?.email ? 'Editar email' : 'Añadir email'}
+        label="Email de la empresa"
+        placeholder="info@empresa.com"
+        initialValue={emailModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(email) => {
+          updateCompany.mutate(
+            { id, data: { email } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: company?.email ? 'Email actualizado' : 'Email añadido' })
+                setEmailModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
+      <ConfirmModal
+        open={!!deleteContactTarget}
+        onClose={() => setDeleteContactTarget(null)}
+        title="Eliminar contacto"
+        message={`¿Eliminar a ${deleteContactTarget?.first_name}? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={deleteContact.isPending}
+        onConfirm={() => {
+          if (!deleteContactTarget) return
+          deleteContact.mutate(deleteContactTarget.id, {
+            onSuccess: () => {
+              addToast({ type: 'success', message: 'Contacto eliminado' })
+              setDeleteContactTarget(null)
+            },
+            onError: (err) => {
+              addToast({ type: 'error', message: `Error al eliminar: ${err.message}` })
+              setDeleteContactTarget(null)
+            },
+          })
+        }}
+      />
+
+      <ConfirmModal
+        open={!!emailConfirm}
+        onClose={() => setEmailConfirm(null)}
+        title="Confirmar envío"
+        message={`Se marcará como enviado el mensaje para ${emailConfirm?.recipient}. Recuerda enviarlo desde tu cliente de correo.`}
+        confirmLabel="Confirmar envío"
+        onConfirm={() => {
+          if (!emailConfirm) return
+          updateMessage.mutate(
+            { id: emailConfirm.id, data: { status: 'sent' } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: `Mensaje marcado como enviado a ${emailConfirm.recipient}` })
+                setEmailConfirm(null)
+              },
+              onError: (err) => {
+                addToast({ type: 'error', message: `Error: ${err.message}` })
+                setEmailConfirm(null)
+              },
+            }
+          )
+        }}
+      />
     </div>
+    </>
   )
 }
 
@@ -291,12 +428,6 @@ function ContactsTab({ contacts, onAdd, onDelete, onCopy }) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <Button size="sm" onClick={onAdd}>
-          <Plus size={16} />
-          Añadir contacto
-        </Button>
-      </div>
       <div className="divide-y divide-slate-100">
         {contacts.map((c) => (
           <div
@@ -354,7 +485,9 @@ function ContactsTab({ contacts, onAdd, onDelete, onCopy }) {
   )
 }
 
-function MessagesTab({ messages, onAdd, onMarkSent }) {
+function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusChange, onSend, onDelete, isMutating }) {
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
   if (messages.length === 0) {
     return (
       <EmptyState
@@ -373,45 +506,80 @@ function MessagesTab({ messages, onAdd, onMarkSent }) {
 
   return (
     <div>
-      <div className="mb-4 flex justify-end">
-        <Button size="sm" onClick={onAdd}>
-          <Mail size={16} />
-          Crear mensaje
-        </Button>
-      </div>
       <div className="divide-y divide-slate-100">
-        {messages.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center justify-between gap-4 py-3"
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-900 truncate">
-                {m.subject}
-              </p>
-              <p className="text-xs text-slate-500">
-                {m.contact_first_name && `Para: ${m.contact_first_name}`}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              {m.status === 'draft' && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onMarkSent(m)}
+        {messages.map((m) => {
+          const statusInfo = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
+          const recipient = m.contact_email || m.contact_first_name || companyEmail || 'sin destinatario'
+          return (
+            <div
+              key={m.id}
+              className="flex items-center justify-between gap-4 py-3"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {m.subject}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {m.contact_first_name && `Para: ${m.contact_first_name}`}
+                  {m.template_name && ` · Plantilla: ${m.template_name}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  value={m.status}
+                  onChange={(e) => onStatusChange(m, e.target.value)}
+                  disabled={isMutating}
+                  className={`rounded-lg border px-2 py-1.5 text-xs font-semibold focus:ring-2 focus:outline-hidden disabled:opacity-50 cursor-pointer ${statusInfo.color}`}
                 >
-                  Marcar enviado
-                </Button>
-              )}
-              <span className="text-xs text-slate-400">
-                {m.sent_at
-                  ? new Date(m.sent_at).toLocaleDateString('es-ES')
-                  : 'Borrador'}
-              </span>
+                  {Object.values(MESSAGE_STATUS_MAP).map((s) => (
+                    <option key={s.value} value={s.value} className="bg-white text-slate-900 font-normal">
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+                {m.status === 'draft' && (
+                  <button
+                    onClick={() => onSend(m)}
+                    disabled={isMutating}
+                    className="rounded-lg px-2 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                    title="Enviar ahora"
+                  >
+                    <Send size={12} />
+                    Enviar
+                  </button>
+                )}
+                <span className="text-xs text-slate-400 min-w-16 text-right">
+                  {m.sent_at
+                    ? new Date(m.sent_at).toLocaleDateString('es-ES')
+                    : 'Borrador'}
+                </span>
+                <button
+                  onClick={() => setDeleteTarget(m)}
+                  disabled={isMutating}
+                  className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 cursor-pointer"
+                  title="Eliminar"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar mensaje"
+        message={`¿Eliminar "${deleteTarget?.subject}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        onConfirm={() => {
+          if (!deleteTarget) return
+          onDelete(deleteTarget)
+          setDeleteTarget(null)
+        }}
+      />
     </div>
   )
 }

@@ -45,6 +45,17 @@ export default function Settings() {
         addToast({ type: 'success', message: 'Perfil guardado' })
         setEditing(false)
       },
+      onError: (err) =>
+        addToast({ type: 'error', message: `Error: ${err.message}` }),
+    })
+  }
+
+  const handleSaveSectors = () => {
+    saveSettings.mutate({ ...form, custom_sectors: customSectors }, {
+      onSuccess: () =>
+        addToast({ type: 'success', message: 'Sectores guardados' }),
+      onError: (err) =>
+        addToast({ type: 'error', message: `Error: ${err.message}` }),
     })
   }
 
@@ -242,6 +253,17 @@ export default function Settings() {
               />
               <Button type="button" onClick={addSector} variant="secondary">
                 <Plus size={18} />
+              </Button>
+            </div>
+
+            <div className="mt-3 flex justify-end">
+              <Button
+                onClick={handleSaveSectors}
+                disabled={saveSettings.isPending}
+                size="sm"
+              >
+                <Check size={16} />
+                {saveSettings.isPending ? 'Guardando...' : 'Guardar sectores'}
               </Button>
             </div>
           </div>

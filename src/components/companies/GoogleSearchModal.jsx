@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Search, Plus, Loader2, Check } from 'lucide-react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'

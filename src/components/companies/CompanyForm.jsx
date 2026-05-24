@@ -11,6 +11,7 @@ export default function CompanyForm({
   company,
   onSubmit,
   isSubmitting,
+  allSectors,
 }) {
   const [form, setForm] = useState({
     name: '',
@@ -108,7 +109,7 @@ export default function CompanyForm({
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
             >
               <option value="">Seleccionar...</option>
-              {SECTORS.map((s) => (
+              {(allSectors || SECTORS).map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>

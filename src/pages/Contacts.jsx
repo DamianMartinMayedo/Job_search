@@ -12,7 +12,9 @@ export default function Contacts() {
   const addToast = useAppStore((s) => s.addToast)
 
   const handleCopyEmail = (email) => {
-    navigator.clipboard.writeText(email)
+    navigator.clipboard.writeText(email).catch(() => {
+      addToast({ type: 'error', message: 'Error al copiar email' })
+    })
     addToast({ type: 'success', message: 'Email copiado' })
   }
 

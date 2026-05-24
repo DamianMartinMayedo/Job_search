@@ -1,49 +1,47 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, Eye, CheckCircle } from 'lucide-react'
-import Badge from '../components/ui/Badge'
+import { Mail, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
+import ConfirmModal from '../components/ui/ConfirmModal'
 import { SkeletonRow } from '../components/ui/Skeleton'
-import { useMessages, useUpdateMessage } from '../hooks/useMessages'
+import { useMessages, useUpdateMessage, useDeleteMessage } from '../hooks/useMessages'
 import { MESSAGE_STATUS, MESSAGE_STATUS_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
 export default function Messages() {
   const [filter, setFilter] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const addToast = useAppStore((s) => s.addToast)
 
   const { data: messages, isLoading } = useMessages(filter || undefined)
   const updateMessage = useUpdateMessage()
+  const deleteMessage = useDeleteMessage()
 
-  const handleMarkSent = (msg) => {
+  const handleStatusChange = (msg, newStatus) => {
+    const data = { status: newStatus }
+    if (newStatus === 'sent') data.sent_at = new Date().toISOString()
+    if (newStatus === 'replied') data.replied_at = new Date().toISOString()
+    if (newStatus === 'closed') data.follow_up_done = true
     updateMessage.mutate(
-      { id: msg.id, data: { status: 'sent' } },
+      { id: msg.id, data },
       {
         onSuccess: () =>
-          addToast({ type: 'success', message: 'Marcado como enviado' }),
+          addToast({ type: 'success', message: `Estado cambiado a "${MESSAGE_STATUS_MAP[newStatus]?.label || newStatus}"` }),
+        onError: (err) =>
+          addToast({ type: 'error', message: `Error: ${err.message}` }),
       }
     )
   }
 
-  const handleMarkReplied = (msg) => {
-    updateMessage.mutate(
-      { id: msg.id, data: { status: 'replied' } },
-      {
-        onSuccess: () =>
-          addToast({ type: 'success', message: 'Marcado como respondido' }),
-      }
-    )
-  }
-
-  const handleMarkFollowUp = (msg) => {
-    updateMessage.mutate(
-      { id: msg.id, data: { follow_up_done: true, status: 'closed' } },
-      {
-        onSuccess: () =>
-          addToast({ type: 'success', message: 'Seguimiento completado' }),
-      }
-    )
+  const handleDelete = (msg) => {
+    deleteMessage.mutate(msg.id, {
+      onSuccess: () => {
+        addToast({ type: 'success', message: 'Mensaje eliminado' })
+        setDeleteTarget(null)
+      },
+      onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+    })
   }
 
   if (isLoading) {
@@ -65,6 +63,8 @@ export default function Messages() {
       />
     )
   }
+
+  const isMutating = updateMessage.isPending || deleteMessage.isPending
 
   return (
     <div>
@@ -92,21 +92,23 @@ export default function Messages() {
 
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 md:grid">
-          <div className="col-span-4">Asunto</div>
+          <div className="col-span-3">Asunto</div>
           <div className="col-span-2">Empresa</div>
           <div className="col-span-2">Contacto</div>
+          <div className="col-span-1">Plantilla</div>
           <div className="col-span-2">Estado</div>
-          <div className="col-span-2 text-right">Fecha</div>
+          <div className="col-span-1">Fecha</div>
+          <div className="col-span-1 text-right">Acción</div>
         </div>
 
         {messages.map((m) => {
-          const status = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
+          const statusInfo = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
           return (
             <div
               key={m.id}
               className="grid grid-cols-1 gap-2 border-b border-slate-100 px-6 py-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-4"
             >
-              <div className="col-span-4">
+              <div className="col-span-3">
                 <Link
                   to={`/app/companies/${m.company_id}`}
                   className="text-sm font-medium text-slate-900 hover:text-primary-600 truncate block"
@@ -125,46 +127,56 @@ export default function Messages() {
               <div className="col-span-2 text-sm text-slate-600">
                 {m.contact_first_name || '—'}
               </div>
-              <div className="col-span-2">
-                <Badge className={status.color}>{status.label}</Badge>
+              <div className="col-span-1 text-sm text-slate-500">
+                {m.template_name || '—'}
               </div>
-              <div className="col-span-2 flex items-center justify-end gap-2">
-                <span className="text-xs text-slate-400">
-                  {m.sent_at
-                    ? new Date(m.sent_at).toLocaleDateString('es-ES')
-                    : 'Borrador'}
-                </span>
-                {m.status === 'draft' && (
-                  <button
-                    onClick={() => handleMarkSent(m)}
-                    className="rounded p-1 text-slate-400 hover:bg-green-50 hover:text-green-600 cursor-pointer"
-                    title="Marcar como enviado"
-                  >
-                    <CheckCircle size={16} />
-                  </button>
-                )}
-                {m.status === 'sent' && (
-                  <button
-                    onClick={() => handleMarkReplied(m)}
-                    className="rounded p-1 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
-                    title="Marcar como respondido"
-                  >
-                    <Eye size={16} />
-                  </button>
-                )}
-                {m.status === 'follow_up' && !m.follow_up_done && (
-                  <button
-                    onClick={() => handleMarkFollowUp(m)}
-                    className="text-xs text-orange-600 hover:text-orange-700 cursor-pointer"
-                  >
-                    Hecho
-                  </button>
-                )}
+              <div className="col-span-2">
+                <select
+                  value={m.status}
+                  onChange={(e) => handleStatusChange(m, e.target.value)}
+                  disabled={isMutating}
+                  className={`rounded border px-2 py-1 text-xs font-medium focus:ring-2 focus:outline-hidden disabled:opacity-50 ${statusInfo.color} border-transparent`}
+                >
+                  {Object.values(MESSAGE_STATUS_MAP).map((s) => (
+                    <option key={s.value} value={s.value} className="bg-white text-slate-900">
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-1 text-xs text-slate-400">
+                {m.sent_at
+                  ? new Date(m.sent_at).toLocaleDateString('es-ES')
+                  : 'Borrador'}
+              </div>
+              <div className="col-span-1 flex justify-end">
+                <button
+                  onClick={() => setDeleteTarget(m)}
+                  disabled={isMutating}
+                  className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 cursor-pointer"
+                  title="Eliminar"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           )
         })}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar mensaje"
+        message={`¿Eliminar "${deleteTarget?.subject}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={deleteMessage.isPending}
+        onConfirm={() => {
+          if (!deleteTarget) return
+          handleDelete(deleteTarget)
+        }}
+      />
     </div>
   )
 }

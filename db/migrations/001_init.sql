@@ -50,7 +50,7 @@ CREATE TABLE messages (
   contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL,
   subject TEXT NOT NULL,
   body TEXT NOT NULL,
-  template_id TEXT,
+  template_id UUID REFERENCES email_templates(id) ON DELETE SET NULL,
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'sent', 'replied', 'follow_up', 'closed')),
   sent_at TIMESTAMPTZ,
   replied_at TIMESTAMPTZ,
