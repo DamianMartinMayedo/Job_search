@@ -9,10 +9,16 @@ export function useContacts(companyId) {
   })
 }
 
-export function useAllContacts() {
+export function useAllContacts(filters = {}) {
   return useQuery({
-    queryKey: ['contacts', 'all'],
-    queryFn: () => api.get('/contacts'),
+    queryKey: ['contacts', 'all', filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (filters.page) params.set('page', filters.page)
+      if (filters.limit) params.set('limit', filters.limit)
+      const qs = params.toString()
+      return api.get(`/contacts${qs ? '?' + qs : ''}`)
+    },
   })
 }
 

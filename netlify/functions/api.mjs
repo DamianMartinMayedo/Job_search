@@ -31,30 +31,41 @@ async function handleCompanies(method, id, req) {
     const search = url.searchParams.get('search')
     const sortBy = url.searchParams.get('sortBy') || 'created_at'
     const sortDir = url.searchParams.get('sortDir') || 'DESC'
+    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
+    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
+    const offset = (page - 1) * limit
 
     const validSortCols = ['name', 'sector', 'city', 'status', 'created_at', 'primary_email']
     const col = validSortCols.includes(sortBy) ? sortBy : 'created_at'
     const dir = sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
-    let query = `
-      SELECT c.*, ct.email as primary_email
-      FROM companies c
-      LEFT JOIN LATERAL (
-        SELECT email FROM contacts
-        WHERE company_id = c.id AND is_primary = true
-        LIMIT 1
-      ) ct ON true
-      WHERE 1=1
-    `
+    let whereClause = ''
     const params = []
-    if (status) { params.push(status); query += ` AND c.status = $${params.length}` }
-    if (sector) { params.push(sector); query += ` AND c.sector = $${params.length}` }
-    if (city) { params.push(city); query += ` AND c.city = $${params.length}` }
-    if (search) { params.push(`%${search}%`); query += ` AND (c.name ILIKE $${params.length} OR c.domain ILIKE $${params.length})` }
-    query += ` ORDER BY ${col} ${dir}`
+    if (status) { params.push(status); whereClause += ` AND c.status = $${params.length}` }
+    if (sector) { params.push(sector); whereClause += ` AND c.sector = $${params.length}` }
+    if (city) { params.push(city); whereClause += ` AND c.city = $${params.length}` }
+    if (search) { params.push(`%${search}%`); whereClause += ` AND (c.name ILIKE $${params.length} OR c.domain ILIKE $${params.length})` }
 
-    const companies = await sql.unsafe(query, params)
-    return json(companies)
+    const [{ total }] = await sql.unsafe(
+      `SELECT COUNT(*)::int as total FROM companies c WHERE 1=1 ${whereClause}`,
+      params
+    )
+
+    const companies = await sql.unsafe(
+      `SELECT c.*, ct.email as primary_email
+       FROM companies c
+       LEFT JOIN LATERAL (
+         SELECT email FROM contacts
+         WHERE company_id = c.id AND is_primary = true
+         LIMIT 1
+       ) ct ON true
+       WHERE 1=1 ${whereClause}
+       ORDER BY ${col} ${dir}
+       LIMIT ${limit} OFFSET ${offset}`,
+      params
+    )
+
+    return json({ companies, total, page, limit })
   }
 
   if (method === 'GET' && id) {
@@ -143,16 +154,33 @@ async function handleContacts(method, id, req) {
   if (method === 'GET' && !id) {
     const url = new URL(req.url)
     const companyId = url.searchParams.get('company_id')
+    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
+    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
+    const offset = (page - 1) * limit
 
-    const contacts = await sql`
-      SELECT c.*, co.name as company_name
-      FROM contacts c
-      JOIN companies co ON c.company_id = co.id
-      ${companyId ? sql`WHERE c.company_id = ${companyId}` : sql``}
-      ORDER BY c.created_at DESC
-    `
+    let whereClause = ''
+    const params = []
+    if (companyId) {
+      params.push(companyId)
+      whereClause = `WHERE c.company_id = $1`
+    }
 
-    return json(contacts)
+    const [{ total }] = await sql.unsafe(
+      `SELECT COUNT(*)::int as total FROM contacts c ${whereClause}`,
+      params
+    )
+
+    const contacts = await sql.unsafe(
+      `SELECT c.*, co.name as company_name
+       FROM contacts c
+       JOIN companies co ON c.company_id = co.id
+       ${whereClause}
+       ORDER BY c.created_at DESC
+       LIMIT ${limit} OFFSET ${offset}`,
+      params
+    )
+
+    return json({ contacts, total, page, limit })
   }
 
   if (method === 'POST') {
@@ -212,26 +240,46 @@ async function handleMessages(method, id, req) {
   if (method === 'GET' && !id) {
     const url = new URL(req.url)
     const status = url.searchParams.get('status')
+    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
+    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
+    const offset = (page - 1) * limit
     const today = new Date().toISOString().split('T')[0]
 
-    const messages = await sql`
-      SELECT m.*, co.name as company_name, co.sector,
-             c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
-             et.name as template_name
-      FROM messages m
+    let whereClause = ''
+    let orderClause = 'ORDER BY m.created_at DESC'
+    const params = []
+
+    if (status === 'follow_up') {
+      params.push(today)
+      whereClause = `WHERE m.follow_up_at <= $1 AND m.follow_up_done = false`
+      orderClause = 'ORDER BY m.follow_up_at ASC'
+    } else if (status) {
+      params.push(status)
+      whereClause = `WHERE m.status = $1`
+    }
+
+    const baseQuery = `FROM messages m
       JOIN companies co ON m.company_id = co.id
       LEFT JOIN contacts c ON m.contact_id = c.id
       LEFT JOIN email_templates et ON m.template_id = et.id
-      ${status === 'follow_up'
-        ? sql`WHERE m.follow_up_at <= ${today} AND m.follow_up_done = false`
-        : status
-          ? sql`WHERE m.status = ${status}`
-          : sql``}
-      ${status === 'follow_up'
-        ? sql`ORDER BY m.follow_up_at ASC`
-        : sql`ORDER BY m.created_at DESC`}
-    `
-    return json(messages)
+      ${whereClause}`
+
+    const [{ total }] = await sql.unsafe(
+      `SELECT COUNT(*)::int as total ${baseQuery}`,
+      params
+    )
+
+    const messages = await sql.unsafe(
+      `SELECT m.*, co.name as company_name, co.sector,
+              c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
+              et.name as template_name
+       ${baseQuery}
+       ${orderClause}
+       LIMIT ${limit} OFFSET ${offset}`,
+      params
+    )
+
+    return json({ messages, total, page, limit })
   }
 
   if (method === 'POST') {

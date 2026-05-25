@@ -1,14 +1,20 @@
+import { useState } from 'react'
 import { Users, Copy, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
 import EmptyState from '../components/ui/EmptyState'
+import Pagination from '../components/ui/Pagination'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { useAllContacts } from '../hooks/useContacts'
 import { ROLE_TYPES_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
 export default function Contacts() {
-  const { data: contacts, isLoading } = useAllContacts()
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const { data, isLoading } = useAllContacts({ page, limit })
+  const contacts = data?.contacts || []
+  const total = data?.total || 0
   const addToast = useAppStore((s) => s.addToast)
 
   const handleCopyEmail = (email) => {
@@ -43,7 +49,7 @@ export default function Contacts() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Contactos</h1>
         <p className="mt-1 text-sm text-slate-500">
-          {contacts.length} contactos
+          {total} contactos
         </p>
       </div>
 
@@ -112,6 +118,17 @@ export default function Contacts() {
           </div>
         ))}
       </div>
+
+      {!isLoading && (
+        <Pagination
+          page={page}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          label="contactos"
+        />
+      )}
     </div>
   )
 }

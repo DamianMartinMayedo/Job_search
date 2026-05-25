@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, X } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import CompanyTable from '../components/companies/CompanyTable'
+import Pagination from '../components/ui/Pagination'
 import GoogleSearchModal from '../components/companies/GoogleSearchModal'
 import CompanyForm from '../components/companies/CompanyForm'
 import {
@@ -25,14 +26,24 @@ export default function Companies() {
   const addToast = useAppStore((s) => s.addToast)
 
   const [sort, setSort] = useState({ field: 'created_at', dir: 'DESC' })
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters.status, filters.sector, filters.city, filters.search, limit])
 
   const queryFilters = {
     ...filters,
     sortBy: sort.field,
     sortDir: sort.dir,
+    page,
+    limit,
   }
 
-  const { data: companies, isLoading } = useCompanies(queryFilters)
+  const { data, isLoading } = useCompanies(queryFilters)
+  const companies = data?.companies || []
+  const total = data?.total || 0
   const { data: settings } = useSettings()
   const createCompany = useCreateCompany()
   const updateCompany = useUpdateCompany()
@@ -77,7 +88,7 @@ export default function Companies() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Empresas</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {companies?.length || 0} empresas
+            {total} empresas
             {hasActiveFilters && ' (filtradas)'}
           </p>
         </div>
@@ -146,6 +157,17 @@ export default function Companies() {
           sort={sort}
           onSort={handleSort}
         />
+
+        {!isLoading && (
+          <Pagination
+            page={page}
+            total={total}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+            label="empresas"
+          />
+        )}
       </div>
 
       <GoogleSearchModal

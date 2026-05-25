@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send, Briefcase } from 'lucide-react'
 import Tabs from '../components/ui/Tabs'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -39,6 +39,7 @@ export default function CompanyDetail() {
   const [notes, setNotes] = useState('')
   const notesTimerRef = useRef(null)
   const [emailModal, setEmailModal] = useState({ open: false, value: '' })
+  const [jobPortalModal, setJobPortalModal] = useState({ open: false, value: '' })
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
 
   const addToast = useAppStore((s) => s.addToast)
@@ -191,6 +192,36 @@ export default function CompanyDetail() {
               >
                 <Plus size={14} />
                 Añadir email
+              </button>
+            )}
+          </div>
+          <div className="mt-2 flex items-center gap-2">
+            {company.job_portal_url ? (
+              <div className="flex items-center gap-2">
+                <a
+                  href={company.job_portal_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
+                >
+                  <Briefcase size={14} />
+                  Portal de empleo
+                </a>
+                <button
+                  onClick={() => setJobPortalModal({ open: true, value: company.job_portal_url })}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar portal de empleo"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setJobPortalModal({ open: true, value: '' })}
+                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+              >
+                <Plus size={14} />
+                Añadir portal de empleo
               </button>
             )}
           </div>
@@ -350,6 +381,29 @@ export default function CompanyDetail() {
               onSuccess: () => {
                 addToast({ type: 'success', message: company?.email ? 'Email actualizado' : 'Email añadido' })
                 setEmailModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
+      <PromptModal
+        open={jobPortalModal.open}
+        onClose={() => setJobPortalModal({ open: false, value: '' })}
+        title={company?.job_portal_url ? 'Editar portal de empleo' : 'Añadir portal de empleo'}
+        label="URL del portal de empleo"
+        placeholder="https://.../jobs"
+        initialValue={jobPortalModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(jobPortalUrl) => {
+          updateCompany.mutate(
+            { id, data: { job_portal_url: jobPortalUrl } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: company?.job_portal_url ? 'Portal de empleo actualizado' : 'Portal de empleo añadido' })
+                setJobPortalModal({ open: false, value: '' })
               },
               onError: (err) =>
                 addToast({ type: 'error', message: `Error: ${err.message}` }),

@@ -12,6 +12,8 @@ export function useCompanies(filters = {}) {
       if (filters.search) params.set('search', filters.search)
       if (filters.sortBy) params.set('sortBy', filters.sortBy)
       if (filters.sortDir) params.set('sortDir', filters.sortDir)
+      if (filters.page) params.set('page', filters.page)
+      if (filters.limit) params.set('limit', filters.limit)
       const qs = params.toString()
       return api.get(`/companies${qs ? '?' + qs : ''}`)
     },

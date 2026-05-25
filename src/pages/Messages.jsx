@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import ConfirmModal from '../components/ui/ConfirmModal'
+import Pagination from '../components/ui/Pagination'
 import { SkeletonRow } from '../components/ui/Skeleton'
 import { useMessages, useUpdateMessage, useDeleteMessage } from '../hooks/useMessages'
 import { MESSAGE_STATUS, MESSAGE_STATUS_MAP } from '../utils/constants'
@@ -11,10 +12,18 @@ import useAppStore from '../store/useAppStore'
 
 export default function Messages() {
   const [filter, setFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const addToast = useAppStore((s) => s.addToast)
 
-  const { data: messages, isLoading } = useMessages(filter || undefined)
+  useEffect(() => {
+    setPage(1)
+  }, [filter, limit])
+
+  const { data, isLoading } = useMessages(filter || undefined, { page, limit })
+  const messages = data?.messages || []
+  const total = data?.total || 0
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
 
@@ -72,7 +81,7 @@ export default function Messages() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Mensajes</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {messages.length} mensaje{messages.length !== 1 ? 's' : ''}
+            {total} mensaje{total !== 1 ? 's' : ''}
             {filter && ` · ${MESSAGE_STATUS_MAP[filter]?.label || filter}`}
           </p>
         </div>
@@ -163,6 +172,17 @@ export default function Messages() {
           )
         })}
       </div>
+
+      {!isLoading && (
+        <Pagination
+          page={page}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          label="mensajes"
+        />
+      )}
 
       <ConfirmModal
         open={!!deleteTarget}

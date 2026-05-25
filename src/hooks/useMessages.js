@@ -1,10 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
-export function useMessages(status) {
+export function useMessages(status, filters = {}) {
   return useQuery({
-    queryKey: ['messages', status],
-    queryFn: () => api.get(`/messages${status ? '?status=' + status : ''}`),
+    queryKey: ['messages', status, filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (status) params.set('status', status)
+      if (filters.page) params.set('page', filters.page)
+      if (filters.limit) params.set('limit', filters.limit)
+      const qs = params.toString()
+      return api.get(`/messages${qs ? '?' + qs : ''}`)
+    },
   })
 }
 
