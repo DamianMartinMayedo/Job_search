@@ -30,9 +30,11 @@ export function useUpdateMessage() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => api.patch(`/messages/${id}`, data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['messages'] })
-      qc.invalidateQueries({ queryKey: ['company'] })
+      if (data?.company_id) {
+        qc.invalidateQueries({ queryKey: ['company', data.company_id] })
+      }
     },
   })
 }
@@ -41,9 +43,11 @@ export function useDeleteMessage() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id) => api.delete(`/messages/${id}`),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['messages'] })
-      qc.invalidateQueries({ queryKey: ['company'] })
+      if (data?.company_id) {
+        qc.invalidateQueries({ queryKey: ['company', data.company_id] })
+      }
     },
   })
 }
@@ -53,9 +57,11 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: ({ messageId, pair_name }) =>
       api.post('/send-message', { messageId, pair_name: pair_name || null }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['messages'] })
-      qc.invalidateQueries({ queryKey: ['company'] })
+      if (data?.company_id) {
+        qc.invalidateQueries({ queryKey: ['company', data.company_id] })
+      }
     },
   })
 }

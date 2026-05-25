@@ -323,8 +323,12 @@ async function handleMessages(method, id, req) {
       body.follow_up_at = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
 
-    if (body.status === 'replied') {
+    if (body.status === 'replied' && !body.replied_at) {
       body.replied_at = new Date().toISOString()
+    }
+
+    if (body.status === 'replied' || body.status === 'closed') {
+      body.follow_up_done = true
     }
 
     const keys = Object.keys(body).filter((k) => body[k] !== undefined)
@@ -371,7 +375,7 @@ async function handleMessages(method, id, req) {
       }, 'company_id', 'type', 'description', 'metadata')}
     `
 
-    return json({ ok: true })
+    return json({ ok: true, company_id: message.company_id })
   }
 
   return json({ error: 'Method not allowed' }, 405)
@@ -591,7 +595,7 @@ async function handleSendMessage(req) {
       }, 'company_id', 'type', 'description', 'metadata')}
     `
 
-    return json({ ok: true, messageId: result.messageId, to })
+    return json({ ok: true, messageId: result.messageId, to, company_id: message.company_id })
   } catch (err) {
     console.error('Error enviando email:', err)
     return error(`Error al enviar: ${err.message}`, 500)

@@ -390,12 +390,15 @@ export default function CompanyDetail() {
                 )
               }}
               onSend={(msg) => {
-                sendMessage.mutate(msg.id, {
-                  onSuccess: () =>
-                    addToast({ type: 'success', message: 'Mensaje enviado' }),
-                  onError: (err) =>
-                    addToast({ type: 'error', message: `Error: ${err.message}` }),
-                })
+                sendMessage.mutate(
+                  { messageId: msg.id },
+                  {
+                    onSuccess: () =>
+                      addToast({ type: 'success', message: 'Mensaje enviado' }),
+                    onError: (err) =>
+                      addToast({ type: 'error', message: `Error: ${err.message}` }),
+                  }
+                )
               }}
               onDelete={(msg) => {
                 deleteMessage.mutate(msg.id, {
