@@ -2,6 +2,7 @@ import { verifyToken } from './utils/jwt.mjs'
 import { json, error, unauthorized, notFound } from './utils/response.mjs'
 import sql from './utils/db.mjs'
 import { validateBody, clampOffset } from './utils/validate.mjs'
+import { sendEmail } from './utils/mailer.mjs'
 
 function getCookie(req, name) {
   const header = req.headers.get('cookie') || ''
@@ -571,8 +572,6 @@ async function handleSendMessage(req) {
   if (!to) return error('No se pudo resolver el destinatario', 400)
 
   try {
-    const { sendEmail } = await import('./utils/mailer.mjs')
-
     let attachments = null
     if (pair_name) {
       const docs = await sql`SELECT * FROM documents WHERE pair_name = ${pair_name} AND company_id IS NULL`
