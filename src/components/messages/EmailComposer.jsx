@@ -15,6 +15,7 @@ export default function EmailComposer({
   initialContact,
   onSubmit,
   isSubmitting,
+  isSending,
 }) {
   const { data: templates } = useTemplates()
   const { data: settings } = useSettings()
@@ -79,7 +80,7 @@ export default function EmailComposer({
       contact_name: getContactName(contactId),
       contact_role: getContactRole(contactId),
       my_name: settings.my_name || '',
-      my_role: settings.my_role || '',
+      my_role: company?.my_role || settings.my_role || '',
       my_web: settings.my_web || '',
       my_email: settings.my_email || '',
     }
@@ -104,7 +105,7 @@ export default function EmailComposer({
             contact_name: getContactName(newContactId),
             contact_role: getContactRole(newContactId),
             my_name: settings.my_name || '',
-            my_role: settings.my_role || '',
+            my_role: company?.my_role || settings.my_role || '',
             my_web: settings.my_web || '',
             my_email: settings.my_email || '',
           }
@@ -122,15 +123,18 @@ export default function EmailComposer({
     e.preventDefault()
     if (!form.subject.trim() || !form.body.trim()) return
     const email = getRecipientEmail()
-    onSubmit({
-      company_id: company?.id,
-      contact_id: form.contact_id && form.contact_id !== '__company__' ? form.contact_id : null,
-      recipient_email: email || form.recipient_email || null,
-      subject: form.subject,
-      body: form.body,
-      template_id: form.template_id || null,
-      status,
-    })
+    onSubmit(
+      {
+        company_id: company?.id,
+        contact_id: form.contact_id && form.contact_id !== '__company__' ? form.contact_id : null,
+        recipient_email: email || form.recipient_email || null,
+        subject: form.subject,
+        body: form.body,
+        template_id: form.template_id || null,
+        status: 'draft',
+      },
+      status === 'sent'
+    )
   }
 
   return (
@@ -219,13 +223,13 @@ export default function EmailComposer({
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="button" variant="secondary" onClick={(e) => handleSubmit(e, 'draft')} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={(e) => handleSubmit(e, 'draft')} disabled={isSubmitting || isSending}>
             <FileText size={18} />
             {isSubmitting ? 'Guardando...' : 'Guardar borrador'}
           </Button>
-          <Button type="button" onClick={(e) => handleSubmit(e, 'sent')} disabled={isSubmitting}>
+          <Button type="button" onClick={(e) => handleSubmit(e, 'sent')} disabled={isSubmitting || isSending}>
             <Send size={18} />
-            {isSubmitting ? 'Enviando...' : 'Enviar'}
+            {isSending ? 'Enviando...' : isSubmitting ? 'Guardando...' : 'Enviar'}
           </Button>
         </div>
       </form>

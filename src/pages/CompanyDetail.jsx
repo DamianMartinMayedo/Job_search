@@ -18,6 +18,7 @@ import {
   useCreateMessage,
   useUpdateMessage,
   useDeleteMessage,
+  useSendMessage,
 } from '../hooks/useMessages'
 import Input from '../components/ui/Input'
 import EmailComposer from '../components/messages/EmailComposer'
@@ -42,6 +43,7 @@ export default function CompanyDetail() {
   const [emailModal, setEmailModal] = useState({ open: false, value: '' })
   const [jobPortalModal, setJobPortalModal] = useState({ open: false, value: '' })
   const [websiteModal, setWebsiteModal] = useState({ open: false, value: '' })
+  const [myRoleModal, setMyRoleModal] = useState({ open: false, value: '' })
   const [editingContact, setEditingContact] = useState(null)
   const [archiveTarget, setArchiveTarget] = useState(null)
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
@@ -56,7 +58,9 @@ export default function CompanyDetail() {
   const createMessage = useCreateMessage()
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
+  const sendMessage = useSendMessage()
 
+  const [sending, setSending] = useState(false)
   const [emailConfirm, setEmailConfirm] = useState(null)
 
   useEffect(() => {
@@ -134,6 +138,24 @@ export default function CompanyDetail() {
           addToast({ type: 'error', message: `Error: ${err.message}` }),
       }
     )
+  }
+
+  const handleMessageSubmit = async (data, shouldSend) => {
+    try {
+      const message = await createMessage.mutateAsync(data)
+      if (shouldSend) {
+        setSending(true)
+        await sendMessage.mutateAsync(message.id)
+        addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` })
+      } else {
+        addToast({ type: 'success', message: 'Borrador guardado' })
+      }
+      setShowMessageForm(false)
+    } catch (err) {
+      addToast({ type: 'error', message: `Error: ${err.message}` })
+    } finally {
+      setSending(false)
+    }
   }
 
   const status = company
@@ -269,6 +291,29 @@ export default function CompanyDetail() {
               </button>
             )}
           </div>
+          <div className="mt-2 flex items-center gap-2">
+            {company.my_role ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Rol: </span>
+                <span className="text-sm text-slate-600 max-w-md truncate">{company.my_role}</span>
+                <button
+                  onClick={() => setMyRoleModal({ open: true, value: company.my_role })}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar rol"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setMyRoleModal({ open: true, value: '' })}
+                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+              >
+                <Plus size={14} />
+                Añadir rol para plantillas
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -342,8 +387,12 @@ export default function CompanyDetail() {
                 )
               }}
               onSend={(msg) => {
-                const to = msg.contact_email || msg.recipient_email || company?.email || 'sin destinatario'
-                setEmailConfirm({ id: msg.id, recipient: to })
+                sendMessage.mutate(msg.id, {
+                  onSuccess: () =>
+                    addToast({ type: 'success', message: 'Mensaje enviado' }),
+                  onError: (err) =>
+                    addToast({ type: 'error', message: `Error: ${err.message}` }),
+                })
               }}
               onDelete={(msg) => {
                 deleteMessage.mutate(msg.id, {
@@ -351,7 +400,7 @@ export default function CompanyDetail() {
                   onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
                 })
               }}
-              isMutating={updateMessage.isPending || deleteMessage.isPending}
+              isMutating={updateMessage.isPending || deleteMessage.isPending || sendMessage.isPending}
             />
           )}
 
@@ -394,18 +443,9 @@ export default function CompanyDetail() {
           onClose={() => setShowMessageForm(false)}
           company={company}
           contacts={contacts || []}
-          onSubmit={(data) => {
-            createMessage.mutate(data, {
-              onSuccess: () => {
-                setShowMessageForm(false)
-                const wasSent = data.status === 'sent'
-                addToast({ type: 'success', message: wasSent ? 'Mensaje enviado' : 'Borrador guardado' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            })
-          }}
+          onSubmit={handleMessageSubmit}
           isSubmitting={createMessage.isPending}
+          isSending={sending}
         />
       )}
 
@@ -470,6 +510,29 @@ export default function CompanyDetail() {
               onSuccess: () => {
                 addToast({ type: 'success', message: 'Web actualizada' })
                 setWebsiteModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
+      <PromptModal
+        open={myRoleModal.open}
+        onClose={() => setMyRoleModal({ open: false, value: '' })}
+        title={company?.my_role ? 'Editar rol para plantillas' : 'Añadir rol para plantillas'}
+        label="Rol en esta empresa"
+        placeholder="diseñador UI/UX y diseño digital end‑to‑end"
+        initialValue={myRoleModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(myRole) => {
+          updateCompany.mutate(
+            { id, data: { my_role: myRole } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: company?.my_role ? 'Rol actualizado' : 'Rol añadido' })
+                setMyRoleModal({ open: false, value: '' })
               },
               onError: (err) =>
                 addToast({ type: 'error', message: `Error: ${err.message}` }),

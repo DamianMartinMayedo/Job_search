@@ -17,6 +17,7 @@ export default function CompanyForm({
     name: '',
     domain: '',
     website: '',
+    my_role: '',
     sector: '',
     city: '',
     region: '',
@@ -33,6 +34,7 @@ export default function CompanyForm({
         name: company.name || '',
         domain: company.domain || '',
         website: company.website || '',
+        my_role: company.my_role || '',
         sector: company.sector || '',
         city: company.city || '',
         region: company.region || '',
@@ -47,6 +49,7 @@ export default function CompanyForm({
         name: '',
         domain: '',
         website: '',
+        my_role: '',
         sector: '',
         city: '',
         region: '',
@@ -99,6 +102,13 @@ export default function CompanyForm({
             onChange={(e) => handleChange('website', e.target.value)}
           />
         </div>
+
+        <Input
+          label="Mi rol en esta empresa (para plantillas)"
+          placeholder="diseñador UI/UX y diseño digital"
+          value={form.my_role}
+          onChange={(e) => handleChange('my_role', e.target.value)}
+        />
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">

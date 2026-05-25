@@ -1,16 +1,25 @@
-import { useState, useEffect } from 'react'
-import { User, Plus, X, Tag, Pencil, Check } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { User, Plus, X, Tag, Pencil, Check, Upload, FileText, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
+import ConfirmModal from '../components/ui/ConfirmModal'
 import { useSettings, useSaveSettings } from '../hooks/useSettings'
+import { useDocuments, useUploadDocument, useDeleteDocument } from '../hooks/useDocuments'
 import { SECTORS } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
 export default function Settings() {
   const { data: settings, isLoading } = useSettings()
   const saveSettings = useSaveSettings()
+  const { data: documents } = useDocuments()
+  const uploadDocument = useUploadDocument()
+  const deleteDocument = useDeleteDocument()
   const addToast = useAppStore((s) => s.addToast)
+
+  const cvInputRef = useRef(null)
+  const coverInputRef = useRef(null)
+  const [deleteDocTarget, setDeleteDocTarget] = useState(null)
 
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({
@@ -73,6 +82,32 @@ export default function Settings() {
   const removeSector = (sector) => {
     setCustomSectors(customSectors.filter((s) => s !== sector))
   }
+
+  const handleFileUpload = (type, file) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1]
+      uploadDocument.mutate(
+        { type, name: file.name, content: base64 },
+        {
+          onSuccess: () =>
+            addToast({ type: 'success', message: `${type === 'cv' ? 'CV' : 'Carta'} subido` }),
+          onError: (err) =>
+            addToast({ type: 'error', message: `Error al subir: ${err.message}` }),
+        }
+      )
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const getDocByType = (type) => {
+    if (!documents) return null
+    return documents.find((d) => d.type === type && !d.company_id) || null
+  }
+
+  const cvDoc = getDocByType('cv')
+  const coverDoc = getDocByType('cover_letter')
 
   const allSectors = [...SECTORS.filter((s) => s !== 'Otro'), ...customSectors]
 
@@ -269,6 +304,119 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
+          <div className="rounded-lg bg-green-100 p-2 text-green-600">
+            <FileText size={20} />
+          </div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            CV y carta de presentación
+          </h2>
+        </div>
+
+        <div className="p-6">
+          <p className="mb-4 text-sm text-slate-500">
+            Se adjuntan automáticamente al enviar correos. Si una empresa tiene sus propios documentos, esos tienen prioridad.
+          </p>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { type: 'cv', label: 'Currículum (CV)', doc: cvDoc, ref: cvInputRef },
+              { type: 'cover_letter', label: 'Carta de presentación', doc: coverDoc, ref: coverInputRef },
+            ].map(({ type, label, doc, ref }) => (
+              <div
+                key={type}
+                className="rounded-lg border border-slate-200 p-4"
+              >
+                <p className="text-sm font-medium text-slate-700">{label}</p>
+                {doc ? (
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <FileText size={16} className="shrink-0 text-slate-400" />
+                      <div className="min-w-0">
+                        <p className="text-sm text-slate-900 truncate">{doc.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button
+                        onClick={() => ref.current?.click()}
+                        className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                        title="Reemplazar"
+                      >
+                        <Upload size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteDocTarget(doc)}
+                        className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <input
+                      ref={ref}
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleFileUpload(type, e.target.files[0])
+                        e.target.value = ''
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => ref.current?.click()}
+                      className="flex items-center gap-2 rounded-lg border border-dashed border-slate-300 px-4 py-3 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer w-full"
+                    >
+                      <Upload size={16} />
+                      Subir {type === 'cv' ? 'CV' : 'carta'}
+                    </button>
+                    <input
+                      ref={ref}
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleFileUpload(type, e.target.files[0])
+                        e.target.value = ''
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <ConfirmModal
+        open={!!deleteDocTarget}
+        onClose={() => setDeleteDocTarget(null)}
+        title="Eliminar documento"
+        message={`¿Eliminar ${deleteDocTarget?.name || 'este documento'}?`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={deleteDocument.isPending}
+        onConfirm={() => {
+          if (!deleteDocTarget) return
+          deleteDocument.mutate(deleteDocTarget.id, {
+            onSuccess: () => {
+              addToast({ type: 'success', message: 'Documento eliminado' })
+              setDeleteDocTarget(null)
+            },
+            onError: (err) => {
+              addToast({ type: 'error', message: `Error: ${err.message}` })
+              setDeleteDocTarget(null)
+            },
+          })
+        }}
+      />
     </div>
   )
 }

@@ -523,6 +523,124 @@ async function handlePlaces(req) {
   return json(data)
 }
 
+async function handleSendMessage(req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+
+  const body = await req.json()
+  const { messageId } = body
+  if (!messageId) return error('messageId requerido', 400)
+
+  const [message] = await sql`SELECT * FROM messages WHERE id = ${messageId}`
+  if (!message) return notFound()
+  if (message.status === 'sent') return error('El mensaje ya fue enviado', 409)
+
+  let to = message.recipient_email
+  if (!to && message.contact_id) {
+    const [contact] = await sql`SELECT email FROM contacts WHERE id = ${message.contact_id}`
+    to = contact?.email
+  }
+  if (!to) {
+    const [company] = await sql`SELECT email FROM companies WHERE id = ${message.company_id}`
+    to = company?.email
+  }
+  if (!to) return error('No se pudo resolver el destinatario', 400)
+
+  try {
+    const { sendEmail } = await import('./utils/mailer.mjs')
+    const result = await sendEmail({
+      to,
+      subject: message.subject,
+      body: message.body,
+    })
+
+    const sentAt = new Date().toISOString()
+    const followUpAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString().split('T')[0]
+
+    await sql`
+      UPDATE messages SET
+        status = 'sent',
+        sent_at = ${sentAt},
+        follow_up_at = ${followUpAt},
+        recipient_email = COALESCE(recipient_email, ${to})
+      WHERE id = ${messageId}
+    `
+
+    await sql`
+      INSERT INTO activity_log ${sql({
+        company_id: message.company_id,
+        type: 'message_sent',
+        description: `Mensaje enviado a ${to}`,
+        metadata: JSON.stringify({ message_id: messageId, provider_id: result.messageId }),
+      }, 'company_id', 'type', 'description', 'metadata')}
+    `
+
+    return json({ ok: true, messageId: result.messageId, to })
+  } catch (err) {
+    console.error('Error enviando email:', err)
+    return error(`Error al enviar: ${err.message}`, 500)
+  }
+}
+
+async function handleDocuments(method, id, req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+
+  if (method === 'GET' && !id) {
+    const url = new URL(req.url)
+    const type = url.searchParams.get('type')
+    const docs = type
+      ? await sql`SELECT id, type, name, company_id, created_at, updated_at FROM documents WHERE type = ${type} ORDER BY created_at DESC`
+      : await sql`SELECT id, type, name, company_id, created_at, updated_at FROM documents ORDER BY created_at DESC`
+    return json(docs)
+  }
+
+  if (method === 'GET' && id) {
+    const [doc] = await sql`SELECT * FROM documents WHERE id = ${id}`
+    if (!doc) return notFound()
+    return json({
+      ...doc,
+      content: doc.content ? doc.content.toString('base64') : null,
+    })
+  }
+
+  if (method === 'POST') {
+    const body = await req.json()
+    if (!body.type || !body.name) return error('type y name son requeridos', 400)
+    if (!['cv', 'cover_letter'].includes(body.type)) return error('type debe ser cv o cover_letter', 400)
+
+    const content = body.content ? Buffer.from(body.content, 'base64') : null
+
+    // Si es doc genérico (sin company_id), reemplazar el existente del mismo type
+    if (!body.company_id) {
+      const [existing] = await sql`SELECT id FROM documents WHERE type = ${body.type} AND company_id IS NULL`
+      if (existing) {
+        const [updated] = await sql`
+          UPDATE documents SET name = ${body.name}, content = ${content}, updated_at = NOW()
+          WHERE id = ${existing.id}
+          RETURNING id, type, name, company_id, created_at, updated_at
+        `
+        return json(updated)
+      }
+    }
+
+    const [doc] = await sql`
+      INSERT INTO documents (type, name, content, company_id)
+      VALUES (${body.type}, ${body.name}, ${content}, ${body.company_id || null})
+      RETURNING id, type, name, company_id, created_at, updated_at
+    `
+    return json(doc, 201)
+  }
+
+  if (method === 'DELETE' && id) {
+    const [doc] = await sql`DELETE FROM documents WHERE id = ${id} RETURNING id`
+    if (!doc) return notFound()
+    return json({ ok: true })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -558,6 +676,10 @@ export default async function handler(req) {
         return handleActivity(req.method, req)
       case 'places':
         return handlePlaces(req)
+      case 'send-message':
+        return handleSendMessage(req)
+      case 'documents':
+        return handleDocuments(req.method, id, req)
       default:
         return json({ error: 'Not found' }, 404)
     }

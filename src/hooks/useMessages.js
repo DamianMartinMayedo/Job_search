@@ -47,3 +47,15 @@ export function useDeleteMessage() {
     },
   })
 }
+
+export function useSendMessage() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (messageId) => api.post('/send-message', { messageId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['messages'] })
+      qc.invalidateQueries({ queryKey: ['company'] })
+    },
+  })
+}
+
