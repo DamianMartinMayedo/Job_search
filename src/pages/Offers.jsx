@@ -255,7 +255,7 @@ export default function Offers() {
                     </div>
                     {o.description && (
                       <p className="mt-2 text-xs text-slate-500">
-                        {o.description.split(/\s+/).slice(0, 25).join(' ')}{o.description.split(/\s+/).length > 25 ? '...' : ''}
+                        {o.description.split(/\s+/).slice(0, 20).join(' ')}{o.description.split(/\s+/).length > 20 ? '...' : ''}
                       </p>
                     )}
                   </div>
