@@ -1,6 +1,7 @@
 import { verifyToken } from './utils/jwt.mjs'
 import { json, error, unauthorized, notFound } from './utils/response.mjs'
 import sql from './utils/db.mjs'
+import { validateBody, clampOffset } from './utils/validate.mjs'
 
 function getCookie(req, name) {
   const header = req.headers.get('cookie') || ''
@@ -31,9 +32,7 @@ async function handleCompanies(method, id, req) {
     const search = url.searchParams.get('search')
     const sortBy = url.searchParams.get('sortBy') || 'created_at'
     const sortDir = url.searchParams.get('sortDir') || 'DESC'
-    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
-    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
-    const offset = (page - 1) * limit
+    const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
 
     const validSortCols = ['name', 'sector', 'city', 'status', 'created_at', 'primary_email']
     const col = validSortCols.includes(sortBy) ? sortBy : 'created_at'
@@ -97,6 +96,9 @@ async function handleCompanies(method, id, req) {
   if (method === 'POST') {
     const body = await req.json()
 
+    const valErr = validateBody(body, ['email'])
+    if (valErr) return error(valErr, 400)
+
     if (body.domain) {
       const [existing] = await sql`SELECT id FROM companies WHERE domain = ${body.domain}`
       if (existing) return error('Ya existe una empresa con ese dominio', 409)
@@ -122,6 +124,10 @@ async function handleCompanies(method, id, req) {
 
   if (method === 'PATCH' && id) {
     const body = await req.json()
+
+    const valErr = validateBody(body, ['email'])
+    if (valErr) return error(valErr, 400)
+
     const keys = Object.keys(body).filter((k) => body[k] !== undefined)
     const [company] = await sql`
       UPDATE companies SET ${sql(body, ...keys)}, updated_at = NOW()
@@ -159,9 +165,7 @@ async function handleContacts(method, id, req) {
   if (method === 'GET' && !id) {
     const url = new URL(req.url)
     const companyId = url.searchParams.get('company_id')
-    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
-    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
-    const offset = (page - 1) * limit
+    const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
 
     let whereClause = ''
     const params = []
@@ -191,6 +195,9 @@ async function handleContacts(method, id, req) {
   if (method === 'POST') {
     const body = await req.json()
 
+    const valErr = validateBody(body, ['email'])
+    if (valErr) return error(valErr, 400)
+
     if (body.is_primary) {
       await sql`UPDATE contacts SET is_primary = false WHERE company_id = ${body.company_id}`
     }
@@ -215,6 +222,9 @@ async function handleContacts(method, id, req) {
 
   if (method === 'PATCH' && id) {
     const body = await req.json()
+
+    const valErr = validateBody(body, ['email'])
+    if (valErr) return error(valErr, 400)
 
     if (body.is_primary && body.company_id) {
       await sql`UPDATE contacts SET is_primary = false WHERE company_id = ${body.company_id}`
@@ -245,9 +255,7 @@ async function handleMessages(method, id, req) {
   if (method === 'GET' && !id) {
     const url = new URL(req.url)
     const status = url.searchParams.get('status')
-    const page = Math.max(1, parseInt(url.searchParams.get('page')) || 1)
-    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 10, 100)
-    const offset = (page - 1) * limit
+    const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
     const today = new Date().toISOString().split('T')[0]
 
     let whereClause = ''
@@ -290,6 +298,9 @@ async function handleMessages(method, id, req) {
   if (method === 'POST') {
     const body = await req.json()
 
+    const valErr = validateBody(body, ['recipient_email'])
+    if (valErr) return error(valErr, 400)
+
     let followUpAt = null
     if (body.status === 'sent') {
       body.sent_at = new Date().toISOString()
@@ -317,6 +328,9 @@ async function handleMessages(method, id, req) {
 
   if (method === 'PATCH' && id) {
     const body = await req.json()
+
+    const valErr = validateBody(body, ['recipient_email'])
+    if (valErr) return error(valErr, 400)
 
     if (body.status === 'sent' && !body.sent_at) {
       body.sent_at = new Date().toISOString()
@@ -397,6 +411,8 @@ async function handleTemplates(method, id, req) {
 
   if (method === 'POST') {
     const body = await req.json()
+    const valErr = validateBody(body)
+    if (valErr) return error(valErr, 400)
     const keys = Object.keys(body).filter((k) => body[k] !== undefined)
     const [template] = await sql`
       INSERT INTO email_templates ${sql(body, ...keys)}
@@ -407,6 +423,8 @@ async function handleTemplates(method, id, req) {
 
   if (method === 'PATCH' && id) {
     const body = await req.json()
+    const valErr = validateBody(body)
+    if (valErr) return error(valErr, 400)
     const keys = Object.keys(body).filter((k) => body[k] !== undefined)
     const [template] = await sql`
       UPDATE email_templates SET ${sql(body, ...keys)}, updated_at = NOW()
@@ -436,6 +454,8 @@ async function handleSettings(method, req) {
 
   if (method === 'POST' || method === 'PUT') {
     const body = await req.json()
+    const valErr = validateBody(body, ['my_email'])
+    if (valErr) return error(valErr, 400)
     const [existing] = await sql`SELECT id FROM settings LIMIT 1`
 
     if (existing) {
@@ -673,21 +693,30 @@ async function handleDocumentPairs(method, id, req) {
   if (!sql) return error('Base de datos no configurada', 500)
 
   if (method === 'GET') {
-    const docs = await sql`
-      SELECT id, type, name, pair_name, company_id, created_at, updated_at
-      FROM documents WHERE company_id IS NULL
-      ORDER BY pair_name, type DESC
+    const rows = await sql`
+      SELECT
+        pair_name,
+        jsonb_object_agg(
+          type,
+          jsonb_build_object(
+            'id', id,
+            'type', type,
+            'name', name,
+            'pair_name', pair_name,
+            'created_at', created_at,
+            'updated_at', updated_at
+          )
+        ) AS docs
+      FROM documents
+      WHERE pair_name IS NOT NULL AND company_id IS NULL
+      GROUP BY pair_name
+      ORDER BY pair_name
     `
-    // Agrupar por pair_name
-    const pairs = []
-    const seen = new Set()
-    for (const doc of docs) {
-      if (!doc.pair_name || seen.has(doc.pair_name)) continue
-      seen.add(doc.pair_name)
-      const cv = docs.find((d) => d.pair_name === doc.pair_name && d.type === 'cv')
-      const cover = docs.find((d) => d.pair_name === doc.pair_name && d.type === 'cover_letter')
-      pairs.push({ pair_name: doc.pair_name, cv: cv || null, cover: cover || null })
-    }
+    const pairs = rows.map((r) => ({
+      pair_name: r.pair_name,
+      cv: r.docs?.cv || null,
+      cover: r.docs?.cover_letter || null,
+    }))
     return json(pairs)
   }
 
