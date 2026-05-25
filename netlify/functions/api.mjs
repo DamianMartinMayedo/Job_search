@@ -537,7 +537,7 @@ async function handleSendMessage(req) {
 
   const [message] = await sql`SELECT * FROM messages WHERE id = ${messageId}`
   if (!message) return notFound()
-  if (message.status === 'sent') return error('El mensaje ya fue enviado', 409)
+  if (message.smtp_sent_at) return error('El mensaje ya fue entregado por SMTP', 409)
 
   let to = message.recipient_email
   if (!to && message.contact_id) {
@@ -573,26 +573,35 @@ async function handleSendMessage(req) {
       attachments,
     })
 
-    const sentAt = new Date().toISOString()
+    // Activity log primero: si SMTP entregó, queremos evidencia aunque el UPDATE
+    // posterior falle. El smtp_message_id queda recuperable desde el log.
+    await sql`
+      INSERT INTO activity_log ${sql({
+        company_id: message.company_id,
+        type: 'message_sent',
+        description: `Mensaje enviado a ${to}`,
+        metadata: JSON.stringify({
+          message_id: messageId,
+          smtp_message_id: result.messageId,
+          to,
+        }),
+      }, 'company_id', 'type', 'description', 'metadata')}
+    `
+
+    const nowIso = new Date().toISOString()
     const followUpAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       .toISOString().split('T')[0]
 
     await sql`
       UPDATE messages SET
         status = 'sent',
-        sent_at = ${sentAt},
+        sent_at = COALESCE(sent_at, ${nowIso}),
+        smtp_sent_at = ${nowIso},
+        smtp_message_id = ${result.messageId || null},
         follow_up_at = ${followUpAt},
+        follow_up_done = false,
         recipient_email = COALESCE(recipient_email, ${to})
       WHERE id = ${messageId}
-    `
-
-    await sql`
-      INSERT INTO activity_log ${sql({
-        company_id: message.company_id,
-        type: 'message_sent',
-        description: `Mensaje enviado a ${to}`,
-        metadata: JSON.stringify({ message_id: messageId, provider_id: result.messageId }),
-      }, 'company_id', 'type', 'description', 'metadata')}
     `
 
     return json({ ok: true, messageId: result.messageId, to, company_id: message.company_id })
