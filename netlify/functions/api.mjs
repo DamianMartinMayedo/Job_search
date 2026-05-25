@@ -705,8 +705,11 @@ async function handleDocumentPairs(method, id, req) {
 
   if (method === 'DELETE' && id) {
     const pairName = decodeURIComponent(id)
-    const result = await sql`DELETE FROM documents WHERE pair_name = ${pairName} AND company_id IS NULL`
-    if (result.count === 0) return notFound()
+    const deleted = await sql`
+      DELETE FROM documents WHERE pair_name = ${pairName} AND company_id IS NULL
+      RETURNING id
+    `
+    if (deleted.length === 0) return notFound()
     return json({ ok: true })
   }
 

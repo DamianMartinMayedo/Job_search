@@ -21,8 +21,8 @@ src/
 │   └── Settings.jsx
 ├── hooks/               # TanStack Query hooks: useCompanies, useContacts, useMessages
 ├── lib/
-│   ├── supabase.js      # Supabase client (initialized once here)
-│   ├── googlePlaces.js  # Google Places API wrapper
+│   ├── api.js           # fetch wrapper with credentials: 'include' — single entry point to Netlify Functions
+│   ├── googlePlaces.js  # Google Places API wrapper (calls /api/places/search)
 │   └── emailTemplates.js # Template definitions + renderTemplate() function
 ├── store/
 │   └── useAppStore.js   # Zustand store for UI state (modals, filters, etc.)
@@ -49,7 +49,7 @@ src/
 /app/settings             User profile settings (name, role, website)
 ```
 
-All `/app/*` routes are protected. If no active Supabase session → redirect to `/`.
+All `/app/*` routes are protected. If no valid JWT cookie session (verified via `GET /api/auth/me`) → redirect to `/`.
 
 ---
 

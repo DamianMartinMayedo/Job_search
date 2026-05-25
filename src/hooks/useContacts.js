@@ -1,14 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
-export function useContacts(companyId) {
-  return useQuery({
-    queryKey: ['contacts', companyId],
-    queryFn: () => api.get(`/contacts${companyId ? '?company_id=' + companyId : ''}`),
-    enabled: !!companyId,
-  })
-}
-
 export function useAllContacts(filters = {}) {
   return useQuery({
     queryKey: ['contacts', 'all', filters],

@@ -1,5 +1,10 @@
 import { SignJWT, jwtVerify } from 'jose'
 
+const isProd = process.env.NODE_ENV === 'production' || process.env.NETLIFY === 'true'
+if (isProd && !process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET no configurado en producción')
+}
+
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || 'dev-secret-change-in-production'
 )
