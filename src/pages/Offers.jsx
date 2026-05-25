@@ -254,7 +254,7 @@ export default function Offers() {
                       )}
                     </div>
                     {o.description && (
-                      <p className="mt-2 line-clamp-2 text-xs text-slate-500">{o.description}</p>
+                      <p className="mt-2 truncate text-xs text-slate-500">{o.description}</p>
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">

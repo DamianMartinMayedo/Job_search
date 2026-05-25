@@ -6,7 +6,7 @@ import EmptyState from '../components/ui/EmptyState'
 import Pagination from '../components/ui/Pagination'
 import ConfirmModal from '../components/ui/ConfirmModal'
 import { SkeletonRow } from '../components/ui/Skeleton'
-import { useAllContacts, useBatchContacts } from '../hooks/useContacts'
+import { useAllContacts, useBatchContacts, useDeleteContact } from '../hooks/useContacts'
 import { ROLE_TYPES_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
@@ -20,9 +20,11 @@ export default function Contacts() {
   const total = data?.total || 0
   const addToast = useAppStore((s) => s.addToast)
   const batchContacts = useBatchContacts()
+  const deleteContact = useDeleteContact()
 
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkDelete, setBulkDelete] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const allSelected = contacts.length > 0 && selectedIds.size === contacts.length
 
@@ -59,6 +61,20 @@ export default function Contacts() {
       addToast({ type: 'error', message: 'Error al copiar email' })
     })
     addToast({ type: 'success', message: 'Email copiado' })
+  }
+
+  const handleDelete = () => {
+    if (!deleteTarget) return
+    deleteContact.mutate(deleteTarget.id, {
+      onSuccess: () => {
+        addToast({ type: 'success', message: 'Contacto eliminado' })
+        setDeleteTarget(null)
+      },
+      onError: (err) => {
+        addToast({ type: 'error', message: `Error: ${err.message}` })
+        setDeleteTarget(null)
+      },
+    })
   }
 
   if (isLoading) {
@@ -194,6 +210,13 @@ export default function Contacts() {
                     <ExternalLink size={14} />
                   </a>
                 )}
+                <button
+                  onClick={() => setDeleteTarget(c)}
+                  className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                  title="Eliminar"
+                >
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
           </div>
@@ -220,6 +243,17 @@ export default function Contacts() {
         danger
         isSubmitting={batchContacts.isPending}
         onConfirm={handleBulkDelete}
+      />
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Eliminar contacto"
+        message={`¿Eliminar a ${deleteTarget?.first_name} ${deleteTarget?.last_name || ''}? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={deleteContact.isPending}
+        onConfirm={handleDelete}
       />
     </div>
   )
