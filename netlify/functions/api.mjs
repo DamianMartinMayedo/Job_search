@@ -4,6 +4,8 @@ import sql from './utils/db.mjs'
 import { validateBody, clampOffset } from './utils/validate.mjs'
 import { sendEmail } from './utils/mailer.mjs'
 import { runAllSources } from './utils/fetchers/index.mjs'
+import { getEmailIngestStatus } from './utils/email/imap.mjs'
+import { pollEmails, getRecentIngestLog } from './utils/email/router.mjs'
 
 function getCookie(req, name) {
   const header = req.headers.get('cookie') || ''
@@ -1002,6 +1004,27 @@ async function handleJobSources(method, id, req) {
     if (body.language) opts.language = body.language
     const results = await runAllSources(opts)
     return json({ ok: true, sources: results })
+  }
+
+  if (id === 'email-status' && method === 'GET') {
+    return json(getEmailIngestStatus())
+  }
+
+  if (id === 'poll-emails-now' && method === 'POST') {
+    try {
+      const summary = await pollEmails()
+      return json({ ok: true, ...summary })
+    } catch (err) {
+      console.error('poll-emails-now error:', err)
+      return error(`Error al leer emails: ${err.message}`, 500)
+    }
+  }
+
+  if (id === 'email-log' && method === 'GET') {
+    const url = new URL(req.url)
+    const limit = Math.min(parseInt(url.searchParams.get('limit')) || 20, 100)
+    const log = await getRecentIngestLog({ limit })
+    return json(log)
   }
 
   if (method === 'GET' && !id) {

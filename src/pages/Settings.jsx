@@ -10,6 +10,7 @@ import { useDocumentPairs, useCreateDocumentPair, useDeleteDocumentPair } from '
 import { SECTORS } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 import JobSourcesSection from '../components/offers/JobSourcesSection'
+import EmailIngestSection from '../components/offers/EmailIngestSection'
 
 export default function Settings() {
   const { data: settings, isLoading } = useSettings()
@@ -378,6 +379,8 @@ export default function Settings() {
       </div>
 
       <JobSourcesSection />
+
+      <EmailIngestSection />
 
       <Modal
         open={pairModalOpen}

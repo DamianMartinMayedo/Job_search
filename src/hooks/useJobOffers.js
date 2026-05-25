@@ -91,3 +91,31 @@ export function useBatchJobOffers() {
   })
 }
 
+export function useEmailIngestStatus() {
+  return useQuery({
+    queryKey: ['email-ingest-status'],
+    queryFn: () => api.get('/job-sources/email-status'),
+    staleTime: 60_000,
+  })
+}
+
+export function useEmailIngestLog(limit = 10) {
+  return useQuery({
+    queryKey: ['email-ingest-log', limit],
+    queryFn: () => api.get(`/job-sources/email-log?limit=${limit}`),
+    refetchOnWindowFocus: false,
+  })
+}
+
+export function usePollEmails() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post('/job-sources/poll-emails-now', {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['job-offers'] })
+      qc.invalidateQueries({ queryKey: ['job-sources'] })
+      qc.invalidateQueries({ queryKey: ['email-ingest-log'] })
+    },
+  })
+}
+
