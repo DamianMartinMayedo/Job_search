@@ -61,11 +61,18 @@ async function runSource(source) {
   return { fetched: offers.length, inserted }
 }
 
-export async function runAllSources({ sourceId } = {}) {
-  console.log(`[fetchers] runAllSources called with sourceId=${sourceId || '(all)'}`)
-  const sources = sourceId
-    ? await sql`SELECT * FROM job_sources WHERE id = ${sourceId}`
-    : await sql`SELECT * FROM job_sources WHERE enabled = true ORDER BY name`
+export async function runAllSources({ sourceId, language } = {}) {
+  console.log(`[fetchers] runAllSources called with sourceId=${sourceId || '(none)'} language=${language || '(any)'}`)
+  let sources
+  if (sourceId) {
+    sources = await sql`SELECT * FROM job_sources WHERE id = ${sourceId}`
+  } else if (language === 'es') {
+    sources = await sql`SELECT * FROM job_sources WHERE enabled = true AND language = 'es' ORDER BY name`
+  } else if (language === 'intl') {
+    sources = await sql`SELECT * FROM job_sources WHERE enabled = true AND (language IS NULL OR language <> 'es') ORDER BY name`
+  } else {
+    sources = await sql`SELECT * FROM job_sources WHERE enabled = true ORDER BY name`
+  }
   console.log(`[fetchers] resolved ${sources.length} source(s) to run`)
 
   const results = []

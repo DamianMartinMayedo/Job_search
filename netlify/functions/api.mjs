@@ -997,7 +997,10 @@ async function handleJobSources(method, id, req) {
 
   if (id === 'run-now' && method === 'POST') {
     const body = await req.json().catch(() => ({}))
-    const results = await runAllSources(body.source_id ? { sourceId: body.source_id } : {})
+    const opts = {}
+    if (body.source_id) opts.sourceId = body.source_id
+    if (body.language) opts.language = body.language
+    const results = await runAllSources(opts)
     return json({ ok: true, sources: results })
   }
 

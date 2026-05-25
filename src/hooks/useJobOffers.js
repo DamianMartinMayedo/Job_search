@@ -46,6 +46,14 @@ export function useCreateJobSource() {
   })
 }
 
+export function useUpdateJobSource() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }) => api.patch(`/job-sources/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['job-sources'] }),
+  })
+}
+
 export function useDeleteJobSource() {
   const qc = useQueryClient()
   return useMutation({
@@ -60,7 +68,14 @@ export function useDeleteJobSource() {
 export function useRunSources() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (sourceId) => api.post('/job-sources/run-now', sourceId ? { source_id: sourceId } : {}),
+    mutationFn: (arg) => {
+      // arg puede ser: undefined/null (todas), un string (UUID de fuente),
+      // o un objeto { language: 'es' | 'intl' } para correr un grupo.
+      let body = {}
+      if (typeof arg === 'string') body = { source_id: arg }
+      else if (arg && typeof arg === 'object') body = arg
+      return api.post('/job-sources/run-now', body)
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['job-offers'] })
       qc.invalidateQueries({ queryKey: ['job-sources'] })
