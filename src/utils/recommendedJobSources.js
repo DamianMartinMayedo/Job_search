@@ -1,22 +1,16 @@
-// Fuentes RSS recomendadas para UX/UI Designer en España.
-// Orden: ES/español primero, luego tablones remotos internacionales
-// (en inglés pero con ofertas EU y empresas remote-friendly).
+// Fuentes RSS recomendadas para UX/UI Designer.
+// Sólo se incluyen feeds verificados que devuelven contenido válido a día de hoy.
+// Los portales españoles grandes (Tecnoempleo, InfoJobs, LinkedIn, Indeed, Manfred)
+// no exponen RSS público, así que la lista es de tablones remotos internacionales
+// (en inglés). Muchas de sus ofertas son worldwide y aceptan España.
 export const RECOMMENDED_JOB_SOURCES = [
-  {
-    name: 'Tecnoempleo',
-    url: 'https://www.tecnoempleo.com/rss.xml',
-    type: 'rss',
-    region: 'España',
-    language: 'es',
-    note: 'Empleo tech en España (la única gran fuente nacional con RSS público). Cubre desarrollo, diseño y producto. Para filtrar por UX/UI: entra a tecnoempleo.com, haz una búsqueda con tus criterios y copia la URL del feed de esa búsqueda.',
-  },
   {
     name: 'WeWorkRemotely · Diseño',
     url: 'https://weworkremotely.com/categories/remote-design-jobs.rss',
     type: 'rss',
     region: 'Remoto',
     language: 'en',
-    note: 'Ofertas remotas de diseño. En inglés, pero muchas son worldwide y aceptan España.',
+    note: 'Tablón general de ofertas remotas de diseño. Suele tener ~15-20 vacantes activas.',
   },
   {
     name: 'RemoteOK · UX',
@@ -31,6 +25,7 @@ export const RECOMMENDED_JOB_SOURCES = [
     type: 'rss',
     region: 'Remoto',
     language: 'en',
+    note: 'Mezcla diseño gráfico, producto y UX.',
   },
   {
     name: 'Remotive · Diseño',
@@ -38,13 +33,6 @@ export const RECOMMENDED_JOB_SOURCES = [
     type: 'rss',
     region: 'Remoto',
     language: 'en',
-    note: 'Tablón curado de ofertas remotas de diseño.',
-  },
-  {
-    name: 'Working Nomads · Diseño',
-    url: 'https://www.workingnomads.com/jobsrss?category=design',
-    type: 'rss',
-    region: 'Remoto',
-    language: 'en',
+    note: 'Feed curado, suele ir más vacío que los otros pero filtran calidad.',
   },
 ]

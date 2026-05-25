@@ -125,24 +125,24 @@ export default function JobSourcesSection() {
       <div className="p-6">
         <div className="mb-4 space-y-2 text-sm text-slate-500">
           <p>
-            Las fuentes RSS se consultan automáticamente cada día a las 08:00 UTC. También puedes ejecutarlas a mano cuando quieras. Las ofertas se deduplican por URL.
+            Las fuentes RSS se consultan automáticamente cada día a las 08:00 UTC. También puedes ejecutarlas a mano. Las ofertas se deduplican por URL.
           </p>
           <p>
-            <strong className="text-slate-700">Para tu perfil (UX/UI · España)</strong> hay pocas opciones nacionales con RSS real:
+            <strong className="text-slate-700">Realidad en 2026 para tu perfil (UX/UI · España):</strong>
           </p>
           <ul className="ml-5 list-disc space-y-1">
             <li>
-              <strong>Tecnoempleo</strong> — la única gran fuente española con RSS público. Para afinar la URL al feed de tu búsqueda específica entra a su web, busca "UX" o "diseño" y copia la URL del icono RSS de los resultados.
+              Ningún portal español grande expone RSS público hoy. <strong>Tecnoempleo</strong>, <strong>InfoJobs</strong>, <strong>LinkedIn</strong>, <strong>Indeed</strong> y <strong>Manfred</strong> han retirado o nunca han ofrecido feeds, y bloquean scraping directo.
             </li>
             <li>
-              Tablones internacionales de remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>…) — están en inglés pero suelen aceptar candidatos desde España.
+              Las opciones recomendadas son tablones internacionales de empleo remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>). Están en inglés pero muchas ofertas son worldwide y aceptan España.
             </li>
             <li>
-              <strong>InfoJobs, LinkedIn e Indeed no exponen RSS</strong> y bloquean scraping. Tendrían que ir por otra vía (alertas Gmail por IMAP) que dejaremos para más adelante.
+              Para portales españoles habría que ir por otra vía (alertas Gmail por IMAP, o autohostear <em>RSSHub</em> para LinkedIn/InfoJobs). Lo dejamos como ampliación futura.
             </li>
           </ul>
           <p className="pt-1">
-            Pulsa <em>Añadir recomendadas</em> para preconfigurar las fuentes anteriores. Después borra o ajusta las que no te interesen.
+            Pulsa <em>Añadir recomendadas</em> para preconfigurar las 4 fuentes verificadas. Después borra o ajusta las que no te interesen.
           </p>
         </div>
 
