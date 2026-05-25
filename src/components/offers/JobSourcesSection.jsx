@@ -128,21 +128,21 @@ export default function JobSourcesSection() {
             Las fuentes RSS se consultan automáticamente cada día a las 08:00 UTC. También puedes ejecutarlas a mano. Las ofertas se deduplican por URL.
           </p>
           <p>
-            <strong className="text-slate-700">Realidad en 2026 para tu perfil (UX/UI · España):</strong>
+            <strong className="text-slate-700">Cobertura para tu perfil (UX/UI · España):</strong>
           </p>
           <ul className="ml-5 list-disc space-y-1">
             <li>
-              Ningún portal español grande expone RSS público hoy. <strong>Tecnoempleo</strong>, <strong>InfoJobs</strong>, <strong>LinkedIn</strong>, <strong>Indeed</strong> y <strong>Manfred</strong> han retirado o nunca han ofrecido feeds, y bloquean scraping directo.
+              <strong>Tecnoempleo</strong> sí publica RSS por provincia. Las recomendadas incluyen Sevilla, Madrid y un feed general de toda España. Para otra provincia copia la URL del icono RSS desde su web tras hacer una búsqueda.
             </li>
             <li>
-              Las opciones recomendadas son tablones internacionales de empleo remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>). Están en inglés pero muchas ofertas son worldwide y aceptan España.
+              Tablones internacionales de empleo remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>). En inglés pero muchas ofertas son worldwide y aceptan España.
             </li>
             <li>
-              Para portales españoles habría que ir por otra vía (alertas Gmail por IMAP, o autohostear <em>RSSHub</em> para LinkedIn/InfoJobs). Lo dejamos como ampliación futura.
+              <strong>InfoJobs</strong>, <strong>LinkedIn</strong>, <strong>Manfred</strong> y <strong>Domestika</strong> no exponen RSS. Para esos usa el panel de <em>Ingesta por email</em> más abajo (alertas → Gmail → polling IMAP).
             </li>
           </ul>
           <p className="pt-1">
-            Pulsa <em>Añadir recomendadas</em> para preconfigurar las 4 fuentes verificadas. Después borra o ajusta las que no te interesen.
+            Pulsa <em>Añadir recomendadas</em> para preconfigurar las 7 fuentes verificadas. Después borra o ajusta las que no te interesen.
           </p>
         </div>
 

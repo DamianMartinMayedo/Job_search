@@ -1,9 +1,33 @@
 // Fuentes RSS recomendadas para UX/UI Designer.
-// Sólo se incluyen feeds verificados que devuelven contenido válido a día de hoy.
-// Los portales españoles grandes (Tecnoempleo, InfoJobs, LinkedIn, Indeed, Manfred)
-// no exponen RSS público, así que la lista es de tablones remotos internacionales
-// (en inglés). Muchas de sus ofertas son worldwide y aceptan España.
+// Verificadas que devuelven contenido válido. España primero (Tecnoempleo
+// por provincia), luego tablones remotos internacionales en inglés.
+// InfoJobs, LinkedIn, Manfred y Domestika no tienen RSS — para esos
+// usaremos ingesta por email (panel separado en Ajustes).
 export const RECOMMENDED_JOB_SOURCES = [
+  {
+    name: 'Tecnoempleo · Sevilla',
+    url: 'https://www.tecnoempleo.com/alertas-empleo-rss.php?pr=274',
+    type: 'rss',
+    region: 'Sevilla',
+    language: 'es',
+    note: 'Ofertas tech publicadas en Sevilla. Incluye remoto y presencial.',
+  },
+  {
+    name: 'Tecnoempleo · Madrid',
+    url: 'https://www.tecnoempleo.com/alertas-empleo-rss.php?pr=263',
+    type: 'rss',
+    region: 'Madrid',
+    language: 'es',
+    note: 'Ofertas tech publicadas en Madrid.',
+  },
+  {
+    name: 'Tecnoempleo · España (todas)',
+    url: 'https://www.tecnoempleo.com/alertas-empleo-rss.php',
+    type: 'rss',
+    region: 'España',
+    language: 'es',
+    note: 'Todas las ofertas tech de España, sin filtro de provincia.',
+  },
   {
     name: 'WeWorkRemotely · Diseño',
     url: 'https://weworkremotely.com/categories/remote-design-jobs.rss',
