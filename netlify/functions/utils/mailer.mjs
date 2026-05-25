@@ -1,9 +1,7 @@
 import nodemailer from 'nodemailer'
 
-let transporter = null
-
 function getTransporter() {
-  if (transporter) return transporter
+  if (globalThis.__mailTransporter) return globalThis.__mailTransporter
 
   const user = process.env.SMTP_USER
   const pass = process.env.SMTP_PASS
@@ -12,14 +10,14 @@ function getTransporter() {
     throw new Error('Credenciales SMTP no configuradas (SMTP_USER / SMTP_PASS)')
   }
 
-  transporter = nodemailer.createTransport({
+  globalThis.__mailTransporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: parseInt(process.env.SMTP_PORT) || 587,
     secure: false,
     auth: { user, pass },
   })
 
-  return transporter
+  return globalThis.__mailTransporter
 }
 
 export async function sendEmail({ to, subject, body, attachments }) {
