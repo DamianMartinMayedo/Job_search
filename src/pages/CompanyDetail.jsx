@@ -60,7 +60,6 @@ export default function CompanyDetail() {
   const deleteMessage = useDeleteMessage()
   const sendMessage = useSendMessage()
 
-  const [sending, setSending] = useState(false)
   const [emailConfirm, setEmailConfirm] = useState(null)
 
   useEffect(() => {
@@ -140,21 +139,25 @@ export default function CompanyDetail() {
     )
   }
 
-  const handleMessageSubmit = async (data, shouldSend) => {
+  const handleMessageSubmit = async (data, shouldSend, pairName) => {
     try {
       const message = await createMessage.mutateAsync(data)
       if (shouldSend) {
-        setSending(true)
-        await sendMessage.mutateAsync(message.id)
-        addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` })
+        sendMessage.mutate(
+          { messageId: message.id, pair_name: pairName },
+          {
+            onSuccess: () =>
+              addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` }),
+            onError: (err) =>
+              addToast({ type: 'error', message: `Error al enviar: ${err.message}` }),
+          }
+        )
       } else {
         addToast({ type: 'success', message: 'Borrador guardado' })
       }
       setShowMessageForm(false)
     } catch (err) {
       addToast({ type: 'error', message: `Error: ${err.message}` })
-    } finally {
-      setSending(false)
     }
   }
 
@@ -445,7 +448,6 @@ export default function CompanyDetail() {
           contacts={contacts || []}
           onSubmit={handleMessageSubmit}
           isSubmitting={createMessage.isPending}
-          isSending={sending}
         />
       )}
 

@@ -51,7 +51,8 @@ export function useDeleteMessage() {
 export function useSendMessage() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (messageId) => api.post('/send-message', { messageId }),
+    mutationFn: ({ messageId, pair_name }) =>
+      api.post('/send-message', { messageId, pair_name: pair_name || null }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['messages'] })
       qc.invalidateQueries({ queryKey: ['company'] })

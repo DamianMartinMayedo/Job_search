@@ -23,3 +23,27 @@ export function useDeleteDocument() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['documents'] }),
   })
 }
+
+export function useDocumentPairs() {
+  return useQuery({
+    queryKey: ['document_pairs'],
+    queryFn: () => api.get('/document_pairs'),
+  })
+}
+
+export function useCreateDocumentPair() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/document_pairs', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['document_pairs'] }),
+  })
+}
+
+export function useDeleteDocumentPair() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (pairName) => api.delete(`/document_pairs/${encodeURIComponent(pairName)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['document_pairs'] }),
+  })
+}
+

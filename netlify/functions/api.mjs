@@ -528,7 +528,7 @@ async function handleSendMessage(req) {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const body = await req.json()
-  const { messageId } = body
+  const { messageId, pair_name } = body
   if (!messageId) return error('messageId requerido', 400)
 
   const [message] = await sql`SELECT * FROM messages WHERE id = ${messageId}`
@@ -548,10 +548,25 @@ async function handleSendMessage(req) {
 
   try {
     const { sendEmail } = await import('./utils/mailer.mjs')
+
+    let attachments = null
+    if (pair_name) {
+      const docs = await sql`SELECT * FROM documents WHERE pair_name = ${pair_name} AND company_id IS NULL`
+      if (docs.length > 0) {
+        attachments = docs
+          .filter((d) => d.content)
+          .map((d) => ({
+            filename: d.name,
+            content: d.content,
+          }))
+      }
+    }
+
     const result = await sendEmail({
       to,
       subject: message.subject,
       body: message.body,
+      attachments,
     })
 
     const sentAt = new Date().toISOString()
@@ -641,6 +656,63 @@ async function handleDocuments(method, id, req) {
   return json({ error: 'Method not allowed' }, 405)
 }
 
+async function handleDocumentPairs(method, id, req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+
+  if (method === 'GET') {
+    const docs = await sql`
+      SELECT id, type, name, pair_name, company_id, created_at, updated_at
+      FROM documents WHERE company_id IS NULL
+      ORDER BY pair_name, type DESC
+    `
+    // Agrupar por pair_name
+    const pairs = []
+    const seen = new Set()
+    for (const doc of docs) {
+      if (!doc.pair_name || seen.has(doc.pair_name)) continue
+      seen.add(doc.pair_name)
+      const cv = docs.find((d) => d.pair_name === doc.pair_name && d.type === 'cv')
+      const cover = docs.find((d) => d.pair_name === doc.pair_name && d.type === 'cover_letter')
+      pairs.push({ pair_name: doc.pair_name, cv: cv || null, cover: cover || null })
+    }
+    return json(pairs)
+  }
+
+  if (method === 'POST') {
+    const { pair_name, cv, cover } = await req.json()
+    if (!pair_name) return error('pair_name requerido', 400)
+    if (!cv?.name || !cover?.name) return error('CV y carta requeridos', 400)
+
+    // Eliminar docs existentes del par
+    await sql`DELETE FROM documents WHERE pair_name = ${pair_name} AND company_id IS NULL`
+
+    const cvContent = cv.content ? Buffer.from(cv.content, 'base64') : null
+    const coverContent = cover.content ? Buffer.from(cover.content, 'base64') : null
+
+    const [newCv] = await sql`
+      INSERT INTO documents (type, name, content, pair_name)
+      VALUES ('cv', ${cv.name}, ${cvContent}, ${pair_name})
+      RETURNING id, type, name, pair_name, created_at, updated_at
+    `
+    const [newCover] = await sql`
+      INSERT INTO documents (type, name, content, pair_name)
+      VALUES ('cover_letter', ${cover.name}, ${coverContent}, ${pair_name})
+      RETURNING id, type, name, pair_name, created_at, updated_at
+    `
+
+    return json({ pair_name, cv: newCv, cover: newCover }, 201)
+  }
+
+  if (method === 'DELETE' && id) {
+    const pairName = decodeURIComponent(id)
+    const result = await sql`DELETE FROM documents WHERE pair_name = ${pairName} AND company_id IS NULL`
+    if (result.count === 0) return notFound()
+    return json({ ok: true })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -680,6 +752,8 @@ export default async function handler(req) {
         return handleSendMessage(req)
       case 'documents':
         return handleDocuments(req.method, id, req)
+      case 'document_pairs':
+        return handleDocumentPairs(req.method, id, req)
       default:
         return json({ error: 'Not found' }, 404)
     }

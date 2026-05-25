@@ -5,6 +5,7 @@ import Button from '../ui/Button'
 import Input from '../ui/Input'
 import { useTemplates } from '../../hooks/useTemplates'
 import { useSettings } from '../../hooks/useSettings'
+import { useDocumentPairs } from '../../hooks/useDocuments'
 import { renderTemplate, renderSubject } from '../../lib/emailTemplates'
 
 export default function EmailComposer({
@@ -15,10 +16,10 @@ export default function EmailComposer({
   initialContact,
   onSubmit,
   isSubmitting,
-  isSending,
 }) {
   const { data: templates } = useTemplates()
   const { data: settings } = useSettings()
+  const { data: pairs } = useDocumentPairs()
 
   const companyEmail = company?.email || ''
 
@@ -28,6 +29,7 @@ export default function EmailComposer({
     subject: '',
     body: '',
     template_id: '',
+    pair_name: '',
   })
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export default function EmailComposer({
         subject: '',
         body: '',
         template_id: '',
+        pair_name: '',
       })
     }
   }, [open, initialContact, companyEmail])
@@ -123,6 +126,7 @@ export default function EmailComposer({
     e.preventDefault()
     if (!form.subject.trim() || !form.body.trim()) return
     const email = getRecipientEmail()
+    const pairName = form.pair_name || null
     onSubmit(
       {
         company_id: company?.id,
@@ -133,7 +137,8 @@ export default function EmailComposer({
         template_id: form.template_id || null,
         status: 'draft',
       },
-      status === 'sent'
+      status === 'sent',
+      pairName
     )
   }
 
@@ -200,6 +205,24 @@ export default function EmailComposer({
           </div>
         )}
 
+        {pairs && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Adjuntar documentos</label>
+            <select
+              value={form.pair_name}
+              onChange={(e) => handleChange('pair_name', e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            >
+              <option value="">Sin adjuntos</option>
+              {pairs.map((p) => (
+                <option key={p.pair_name} value={p.pair_name}>
+                  {p.pair_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <Input
           label="Asunto *"
           value={form.subject}
@@ -223,13 +246,13 @@ export default function EmailComposer({
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
-          <Button type="button" variant="secondary" onClick={(e) => handleSubmit(e, 'draft')} disabled={isSubmitting || isSending}>
+          <Button type="button" variant="secondary" onClick={(e) => handleSubmit(e, 'draft')} disabled={isSubmitting}>
             <FileText size={18} />
             {isSubmitting ? 'Guardando...' : 'Guardar borrador'}
           </Button>
-          <Button type="button" onClick={(e) => handleSubmit(e, 'sent')} disabled={isSubmitting || isSending}>
+          <Button type="button" onClick={(e) => handleSubmit(e, 'sent')} disabled={isSubmitting}>
             <Send size={18} />
-            {isSending ? 'Enviando...' : isSubmitting ? 'Guardando...' : 'Enviar'}
+            {isSubmitting ? 'Enviando...' : 'Enviar'}
           </Button>
         </div>
       </form>
