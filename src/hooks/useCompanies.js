@@ -54,3 +54,11 @@ export function useDeleteCompany() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['companies'] }),
   })
 }
+
+export function useBatchCompanies() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/companies/batch', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['companies'] }),
+  })
+}

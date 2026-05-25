@@ -40,3 +40,11 @@ export function useDeleteContact() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['contacts'] }),
   })
 }
+
+export function useBatchContacts() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/contacts/batch', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['contacts'] }),
+  })
+}

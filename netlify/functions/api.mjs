@@ -159,6 +159,52 @@ async function handleCompanies(method, id, req) {
     return json(company)
   }
 
+  if (method === 'POST' && id === 'batch') {
+    const body = await req.json()
+    const { ids, action, status } = body
+    if (!ids || !Array.isArray(ids) || ids.length === 0)
+      return error('ids requerido (array de UUIDs)', 400)
+    if (!['archive', 'delete', 'status'].includes(action))
+      return error('acción no válida', 400)
+    if (action === 'status' && !status)
+      return error('status requerido para la acción status', 400)
+
+    if (action === 'delete') {
+      await sql`DELETE FROM companies WHERE id = ANY(${ids})`
+      return json({ ok: true, count: ids.length })
+    }
+
+    if (action === 'archive') {
+      await sql`UPDATE companies SET status = 'archived', updated_at = NOW() WHERE id = ANY(${ids})`
+      for (const companyId of ids) {
+        await sql`
+          INSERT INTO activity_log ${sql({
+            company_id: companyId,
+            type: 'status_change',
+            description: 'Empresa archivada',
+            metadata: JSON.stringify({ to: 'archived' }),
+          }, 'company_id', 'type', 'description', 'metadata')}
+        `
+      }
+      return json({ ok: true, count: ids.length })
+    }
+
+    if (action === 'status') {
+      await sql`UPDATE companies SET status = ${status}, updated_at = NOW() WHERE id = ANY(${ids})`
+      for (const companyId of ids) {
+        await sql`
+          INSERT INTO activity_log ${sql({
+            company_id: companyId,
+            type: 'status_change',
+            description: `Estado cambiado a '${status}'`,
+            metadata: JSON.stringify({ to: status }),
+          }, 'company_id', 'type', 'description', 'metadata')}
+        `
+      }
+      return json({ ok: true, count: ids.length })
+    }
+  }
+
   if (method === 'DELETE' && id) {
     const [company] = await sql`DELETE FROM companies WHERE id = ${id} RETURNING id`
     if (!company) return notFound()
@@ -252,6 +298,16 @@ async function handleContacts(method, id, req) {
     `
     if (!contact) return notFound()
     return json(contact)
+  }
+
+  if (method === 'POST' && id === 'batch') {
+    const body = await req.json()
+    const { ids } = body
+    if (!ids || !Array.isArray(ids) || ids.length === 0)
+      return error('ids requerido (array de UUIDs)', 400)
+
+    await sql`DELETE FROM contacts WHERE id = ANY(${ids})`
+    return json({ ok: true, count: ids.length })
   }
 
   if (method === 'DELETE' && id) {
@@ -394,6 +450,57 @@ async function handleMessages(method, id, req) {
     }
 
     return json(message)
+  }
+
+  if (method === 'POST' && id === 'batch') {
+    const body = await req.json()
+    const { ids, action, status } = body
+    if (!ids || !Array.isArray(ids) || ids.length === 0)
+      return error('ids requerido (array de UUIDs)', 400)
+    if (!['delete', 'status'].includes(action))
+      return error('acción no válida', 400)
+    if (action === 'status' && !status)
+      return error('status requerido para la acción status', 400)
+
+    if (action === 'delete') {
+      const msgs = await sql`SELECT id, company_id FROM messages WHERE id = ANY(${ids})`
+      await sql`DELETE FROM messages WHERE id = ANY(${ids})`
+      for (const m of msgs) {
+        await sql`
+          INSERT INTO activity_log ${sql({
+            company_id: m.company_id,
+            type: 'status_change',
+            description: 'Mensaje eliminado',
+            metadata: JSON.stringify({ message_id: m.id }),
+          }, 'company_id', 'type', 'description', 'metadata')}
+        `
+      }
+      return json({ ok: true, count: ids.length })
+    }
+
+    if (action === 'status') {
+      if (status === 'sent') {
+        const now = new Date().toISOString()
+        const followUpAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        await sql`
+          UPDATE messages SET status = 'sent', sent_at = ${now}, follow_up_at = ${followUpAt}
+          WHERE id = ANY(${ids})
+        `
+      } else if (status === 'replied') {
+        await sql`
+          UPDATE messages SET status = 'replied', replied_at = ${new Date().toISOString()}
+          WHERE id = ANY(${ids})
+        `
+      } else if (status === 'closed') {
+        await sql`
+          UPDATE messages SET status = 'closed', follow_up_done = true
+          WHERE id = ANY(${ids})
+        `
+      } else {
+        await sql`UPDATE messages SET status = ${status} WHERE id = ANY(${ids})`
+      }
+      return json({ ok: true, count: ids.length })
+    }
   }
 
   if (method === 'DELETE' && id) {
@@ -849,6 +956,24 @@ async function handleJobOffers(method, id, req) {
     `
     if (!offer) return notFound()
     return json(offer)
+  }
+
+  if (method === 'POST' && id === 'batch') {
+    const body = await req.json()
+    const { ids, action, status } = body
+    if (!ids || !Array.isArray(ids) || ids.length === 0)
+      return error('ids requerido (array de UUIDs)', 400)
+    if (!['delete', 'status'].includes(action))
+      return error('acción no válida', 400)
+    if (action === 'status' && !status)
+      return error('status requerido para la acción status', 400)
+
+    if (action === 'delete') {
+      await sql`DELETE FROM job_offers WHERE id = ANY(${ids})`
+    } else {
+      await sql`UPDATE job_offers SET status = ${status} WHERE id = ANY(${ids})`
+    }
+    return json({ ok: true, count: ids.length })
   }
 
   if (method === 'DELETE' && id) {

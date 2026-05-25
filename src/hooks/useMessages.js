@@ -57,12 +57,18 @@ export function useSendMessage() {
   return useMutation({
     mutationFn: ({ messageId, pair_name }) =>
       api.post('/send-message', { messageId, pair_name: pair_name || null }),
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['messages'] })
-      if (data?.company_id) {
-        qc.invalidateQueries({ queryKey: ['company', data.company_id] })
-      }
+      qc.invalidateQueries({ queryKey: ['company'] })
     },
+  })
+}
+
+export function useBatchMessages() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/messages/batch', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['messages'] }),
   })
 }
 

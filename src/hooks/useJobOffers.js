@@ -67,3 +67,12 @@ export function useRunSources() {
     },
   })
 }
+
+export function useBatchJobOffers() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data) => api.post('/job-offers/batch', data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['job-offers'] }),
+  })
+}
+

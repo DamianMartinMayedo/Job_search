@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Trash2 } from 'lucide-react'
-import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import ConfirmModal from '../components/ui/ConfirmModal'
 import Pagination from '../components/ui/Pagination'
 import { SkeletonRow } from '../components/ui/Skeleton'
-import { useMessages, useUpdateMessage, useDeleteMessage } from '../hooks/useMessages'
+import { useMessages, useUpdateMessage, useDeleteMessage, useBatchMessages } from '../hooks/useMessages'
 import { MESSAGE_STATUS, MESSAGE_STATUS_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
@@ -20,6 +19,9 @@ export default function Messages() {
   const addToast = useAppStore((s) => s.addToast)
   const prevFilter = useRef(filter)
 
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkAction, setBulkAction] = useState(null)
+
   useEffect(() => {
     if (prevFilter.current !== filter) {
       prevFilter.current = filter
@@ -32,6 +34,57 @@ export default function Messages() {
   const total = data?.total || 0
   const updateMessage = useUpdateMessage()
   const deleteMessage = useDeleteMessage()
+  const batchMessages = useBatchMessages()
+
+  const allSelected = messages.length > 0 && selectedIds.size === messages.length
+
+  const toggleSelectAll = () => {
+    allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(messages.map((m) => m.id)))
+  }
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleBulkAction = () => {
+    if (!bulkAction || selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+
+    batchMessages.mutate(
+      { ids, action: 'delete' },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `${ids.length} mensajes eliminados` })
+          clearSelection()
+          setBulkAction(null)
+        },
+        onError: (err) => {
+          addToast({ type: 'error', message: `Error: ${err.message}` })
+          setBulkAction(null)
+        },
+      }
+    )
+  }
+
+  const handleBulkStatus = (newStatus) => {
+    if (selectedIds.size === 0) return
+    batchMessages.mutate(
+      { ids: Array.from(selectedIds), action: 'status', status: newStatus },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `${selectedIds.size} mensajes actualizados a "${MESSAGE_STATUS_MAP[newStatus]?.label || newStatus}"` })
+          clearSelection()
+        },
+        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+      }
+    )
+  }
 
   const handleStatusChange = (msg, newStatus) => {
     const data = { status: newStatus }
@@ -79,7 +132,7 @@ export default function Messages() {
     )
   }
 
-  const isMutating = updateMessage.isPending || deleteMessage.isPending
+  const isMutating = updateMessage.isPending || deleteMessage.isPending || batchMessages.isPending
 
   return (
     <div>
@@ -105,15 +158,58 @@ export default function Messages() {
         </select>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="mt-4 flex items-center justify-between rounded-lg bg-primary-600 px-4 py-3 text-white">
+          <span className="text-sm font-medium">
+            {selectedIds.size} mensaje{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+          </span>
+          <div className="flex items-center gap-2">
+            <select
+              onChange={(e) => { const v = e.target.value; if (v) { e.target.value = ''; handleBulkStatus(v) } }}
+              className="rounded-lg border border-primary-400 bg-primary-700 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
+            >
+              <option value="">Cambiar estado...</option>
+              {MESSAGE_STATUS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => setBulkAction('delete')}
+              className="rounded-lg bg-white/15 px-3 py-1.5 text-sm hover:bg-white/25 cursor-pointer"
+              disabled={batchMessages.isPending}
+            >
+              <Trash2 size={14} className="inline mr-1" />
+              Eliminar
+            </button>
+            <button
+              onClick={clearSelection}
+              className="ml-2 text-sm text-white/70 hover:text-white cursor-pointer"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="hidden grid-cols-12 gap-4 border-b border-slate-200 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500 md:grid">
-          <div className="col-span-3">Asunto</div>
-          <div className="col-span-2">Empresa</div>
-          <div className="col-span-2">Contacto</div>
-          <div className="col-span-1">Plantilla</div>
-          <div className="col-span-2">Estado</div>
-          <div className="col-span-1">Fecha</div>
-          <div className="col-span-1 text-right">Acción</div>
+        <div className="hidden md:flex items-center border-b border-slate-200">
+          <div className="flex shrink-0 items-center justify-center px-3 py-3">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleSelectAll}
+              className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            />
+          </div>
+          <div className="flex-1 grid grid-cols-11 gap-4 px-6 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">
+            <div className="col-span-2">Asunto</div>
+            <div className="col-span-2">Empresa</div>
+            <div className="col-span-2">Contacto</div>
+            <div className="col-span-1">Plantilla</div>
+            <div className="col-span-2">Estado</div>
+            <div className="col-span-1">Fecha</div>
+            <div className="col-span-1 text-right">Acción</div>
+          </div>
         </div>
 
         {messages.map((m) => {
@@ -121,58 +217,68 @@ export default function Messages() {
           return (
             <div
               key={m.id}
-              className="grid grid-cols-1 gap-2 border-b border-slate-100 px-6 py-4 last:border-b-0 hover:bg-slate-50 md:grid-cols-12 md:items-center md:gap-4"
+              className="flex items-center border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
             >
-              <div className="col-span-3">
-                <Link
-                  to={`/app/companies/${m.company_id}`}
-                  className="text-sm font-medium text-slate-900 hover:text-primary-600 truncate block"
-                >
-                  {m.subject}
-                </Link>
+              <div className="flex shrink-0 items-center justify-center px-3 py-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(m.id)}
+                  onChange={() => toggleSelect(m.id)}
+                  className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                />
               </div>
-              <div className="col-span-2 text-sm text-slate-600">
-                <Link
-                  to={`/app/companies/${m.company_id}`}
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  {m.company_name || '—'}
-                </Link>
-              </div>
-              <div className="col-span-2 text-sm text-slate-600">
-                {m.contact_first_name || '—'}
-              </div>
-              <div className="col-span-1 text-sm text-slate-500">
-                {m.template_name || '—'}
-              </div>
-              <div className="col-span-2">
-                <select
-                  value={m.status}
-                  onChange={(e) => handleStatusChange(m, e.target.value)}
-                  disabled={isMutating}
-                  className={`rounded border px-2 py-1 text-xs font-medium focus:ring-2 focus:outline-hidden disabled:opacity-50 ${statusInfo.color} border-transparent`}
-                >
-                  {Object.values(MESSAGE_STATUS_MAP).map((s) => (
-                    <option key={s.value} value={s.value} className="bg-white text-slate-900">
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-1 text-xs text-slate-400">
-                {m.sent_at
-                  ? new Date(m.sent_at).toLocaleDateString('es-ES')
-                  : 'Borrador'}
-              </div>
-              <div className="col-span-1 flex justify-end">
-                <button
-                  onClick={() => setDeleteTarget(m)}
-                  disabled={isMutating}
-                  className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 cursor-pointer"
-                  title="Eliminar"
-                >
-                  <Trash2 size={14} />
-                </button>
+              <div className="flex-1 grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-11 md:items-center md:gap-4">
+                <div className="col-span-2">
+                  <Link
+                    to={`/app/companies/${m.company_id}`}
+                    className="text-sm font-medium text-slate-900 hover:text-primary-600 truncate block"
+                  >
+                    {m.subject}
+                  </Link>
+                </div>
+                <div className="col-span-2 text-sm text-slate-600">
+                  <Link
+                    to={`/app/companies/${m.company_id}`}
+                    className="text-primary-600 hover:text-primary-700"
+                  >
+                    {m.company_name || '—'}
+                  </Link>
+                </div>
+                <div className="col-span-2 text-sm text-slate-600">
+                  {m.contact_first_name || '—'}
+                </div>
+                <div className="col-span-1 text-sm text-slate-500">
+                  {m.template_name || '—'}
+                </div>
+                <div className="col-span-2">
+                  <select
+                    value={m.status}
+                    onChange={(e) => handleStatusChange(m, e.target.value)}
+                    disabled={isMutating}
+                    className={`rounded border px-2 py-1 text-xs font-medium focus:ring-2 focus:outline-hidden disabled:opacity-50 ${statusInfo.color} border-transparent`}
+                  >
+                    {Object.values(MESSAGE_STATUS_MAP).map((s) => (
+                      <option key={s.value} value={s.value} className="bg-white text-slate-900">
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-1 text-xs text-slate-400">
+                  {m.sent_at
+                    ? new Date(m.sent_at).toLocaleDateString('es-ES')
+                    : 'Borrador'}
+                </div>
+                <div className="col-span-1 flex justify-end">
+                  <button
+                    onClick={() => setDeleteTarget(m)}
+                    disabled={isMutating}
+                    className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 cursor-pointer"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </div>
           )
@@ -189,6 +295,17 @@ export default function Messages() {
           label="mensajes"
         />
       )}
+
+      <ConfirmModal
+        open={!!bulkAction}
+        onClose={() => setBulkAction(null)}
+        title="Eliminar mensajes"
+        message={`¿Eliminar ${selectedIds.size} mensaje${selectedIds.size !== 1 ? 's' : ''}?`}
+        confirmLabel="Eliminar"
+        danger
+        isSubmitting={batchMessages.isPending}
+        onConfirm={handleBulkAction}
+      />
 
       <ConfirmModal
         open={!!deleteTarget}
