@@ -42,11 +42,22 @@ export default function JobSourcesSection() {
   const handleRun = (sourceId) => {
     runSources.mutate(sourceId, {
       onSuccess: (data) => {
-        const r = sourceId ? data.sources[0] : null
-        const summary = sourceId
-          ? `${r.ok ? '✓' : '✗'} ${r.source}: ${r.ok ? `${r.inserted} nuevas / ${r.fetched} leídas` : r.error}`
-          : `Ejecutadas ${data.sources.length} fuentes`
-        addToast({ type: 'success', message: summary })
+        if (sourceId) {
+          const r = data.sources[0]
+          if (r.ok) {
+            addToast({ type: 'success', message: `${r.source}: ${r.inserted} nuevas / ${r.fetched} leídas` })
+          } else {
+            addToast({ type: 'error', message: `${r.source}: ${r.error}` })
+          }
+        } else {
+          const failed = data.sources.filter((s) => !s.ok)
+          if (failed.length === 0) {
+            const totalNew = data.sources.reduce((acc, s) => acc + (s.inserted || 0), 0)
+            addToast({ type: 'success', message: `${data.sources.length} fuentes ejecutadas · ${totalNew} ofertas nuevas` })
+          } else {
+            addToast({ type: 'error', message: `${failed.length} de ${data.sources.length} fuentes fallaron. Revisa el detalle en la lista.` })
+          }
+        }
       },
       onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
     })

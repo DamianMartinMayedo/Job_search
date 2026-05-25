@@ -84,23 +84,48 @@ function normalizeItem(item) {
 
 export async function fetchRssOffers(source) {
   const res = await fetch(source.url, {
+    redirect: 'follow',
     headers: {
-      'User-Agent': 'job-search-crm/1.0 (+personal use)',
-      Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml',
+      'User-Agent': 'Mozilla/5.0 (compatible; job-search-crm/1.0; +personal use)',
+      Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.5',
     },
   })
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} al leer ${source.url}`)
   }
-  const xml = await res.text()
-  const doc = parser.parse(xml)
 
-  // RSS 2.0: rss.channel.item ; Atom: feed.entry
+  const contentType = res.headers.get('content-type') || ''
+  const xml = await res.text()
+
+  // Detecta cuando el servidor devuelve HTML en vez de XML (p.ej. página de "feed retirado"
+  // o un redirect a landing). Sin esto el parser devuelve items=[] sin error claro.
+  const looksLikeHtml = /^\s*<!doctype html|<html[\s>]/i.test(xml)
+  const looksLikeXml = /^\s*<\?xml|<rss[\s>]|<feed[\s>]/i.test(xml)
+  if (looksLikeHtml || (!looksLikeXml && contentType.includes('text/html'))) {
+    throw new Error(
+      `La fuente devolvió HTML, no un feed RSS/Atom (content-type: ${contentType || 'desconocido'}). ¿Es realmente la URL del feed?`
+    )
+  }
+
+  let doc
+  try {
+    doc = parser.parse(xml)
+  } catch (err) {
+    throw new Error(`No se pudo parsear como XML: ${err.message}`)
+  }
+
   const items =
     doc?.rss?.channel?.item ||
     doc?.feed?.entry ||
-    []
-  const list = Array.isArray(items) ? items : [items]
+    null
 
+  if (items == null) {
+    const preview = xml.slice(0, 120).replace(/\s+/g, ' ').trim()
+    throw new Error(
+      `XML parseado pero sin items (rss.channel.item ni feed.entry). Primeros 120 chars: "${preview}"`
+    )
+  }
+
+  const list = Array.isArray(items) ? items : [items]
   return list.map(normalizeItem).filter(Boolean)
 }
