@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, Search, X } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -25,13 +25,12 @@ export default function Companies() {
   const clearFilters = useAppStore((s) => s.clearCompanyFilters)
   const addToast = useAppStore((s) => s.addToast)
 
-  const [sort, setSort] = useState({ field: 'created_at', dir: 'DESC' })
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
-
-  useEffect(() => {
-    setPage(1)
-  }, [filters.status, filters.sector, filters.city, filters.search, limit])
+  const sort = useAppStore((s) => s.companySort)
+  const setSort = useAppStore((s) => s.setCompanySort)
+  const page = useAppStore((s) => s.companyPage)
+  const setPage = useAppStore((s) => s.setCompanyPage)
+  const limit = useAppStore((s) => s.companyLimit)
+  const setLimit = useAppStore((s) => s.setCompanyLimit)
 
   const queryFilters = {
     ...filters,
@@ -55,10 +54,10 @@ export default function Companies() {
     filters.status || filters.sector || filters.city || filters.search
 
   const handleSort = (field) => {
-    setSort((prev) => ({
+    setSort({
       field,
-      dir: prev.field === field && prev.dir === 'DESC' ? 'ASC' : 'DESC',
-    }))
+      dir: sort.field === field && sort.dir === 'DESC' ? 'ASC' : 'DESC',
+    })
   }
 
   const handleCreate = async (data) => {

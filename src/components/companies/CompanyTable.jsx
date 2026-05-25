@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, ExternalLink, Trash2, ArrowUp, ArrowDown } from 'lucide-react'
+import { Building2, ExternalLink, Archive, ArrowUp, ArrowDown } from 'lucide-react'
 import Badge from '../ui/Badge'
 import EmptyState from '../ui/EmptyState'
 import { SkeletonRow } from '../ui/Skeleton'
 import ConfirmModal from '../ui/ConfirmModal'
 import { COMPANY_STATUS_MAP } from '../../utils/constants'
-import { useDeleteCompany } from '../../hooks/useCompanies'
+import { useUpdateCompany } from '../../hooks/useCompanies'
 import useAppStore from '../../store/useAppStore'
 
 function SortHeader({ label, field, sort, onSort }) {
@@ -27,9 +27,9 @@ function SortHeader({ label, field, sort, onSort }) {
 }
 
 export default function CompanyTable({ companies, isLoading, sort, onSort }) {
-  const deleteCompany = useDeleteCompany()
+  const updateCompany = useUpdateCompany()
   const addToast = useAppStore((s) => s.addToast)
-  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [archiveTarget, setArchiveTarget] = useState(null)
 
   if (isLoading) {
     return (
@@ -117,10 +117,11 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
                 Ver
               </Link>
               <button
-                onClick={() => setDeleteTarget(company)}
-                className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                onClick={() => setArchiveTarget(company)}
+                className="rounded p-1 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
+                title="Archivar"
               >
-                <Trash2 size={14} />
+                <Archive size={14} />
               </button>
             </div>
           </div>
@@ -129,25 +130,27 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
     </div>
 
     <ConfirmModal
-      open={!!deleteTarget}
-      onClose={() => setDeleteTarget(null)}
-      title="Eliminar empresa"
-      message={`¿Eliminar ${deleteTarget?.name}? Esta acción no se puede deshacer.`}
-      confirmLabel="Eliminar"
-      danger
-      isSubmitting={deleteCompany.isPending}
+      open={!!archiveTarget}
+      onClose={() => setArchiveTarget(null)}
+      title="Archivar empresa"
+      message={`¿Archivar ${archiveTarget?.name}? No aparecerá en la lista principal pero se conserva para evitar duplicados en futuras búsquedas.`}
+      confirmLabel="Archivar"
+      isSubmitting={updateCompany.isPending}
       onConfirm={() => {
-        if (!deleteTarget) return
-        deleteCompany.mutate(deleteTarget.id, {
-          onSuccess: () => {
-            addToast({ type: 'success', message: `${deleteTarget.name} eliminada` })
-            setDeleteTarget(null)
-          },
-          onError: (err) => {
-            addToast({ type: 'error', message: `Error al eliminar: ${err.message}` })
-            setDeleteTarget(null)
-          },
-        })
+        if (!archiveTarget) return
+        updateCompany.mutate(
+          { id: archiveTarget.id, data: { status: 'archived' } },
+          {
+            onSuccess: () => {
+              addToast({ type: 'success', message: `${archiveTarget.name} archivada` })
+              setArchiveTarget(null)
+            },
+            onError: (err) => {
+              addToast({ type: 'error', message: `Error al archivar: ${err.message}` })
+              setArchiveTarget(null)
+            },
+          }
+        )
       }}
     />
     </>

@@ -3,11 +3,12 @@ import { useMessages, useUpdateMessage } from '../../hooks/useMessages'
 import useAppStore from '../../store/useAppStore'
 
 export default function FollowUpAlert() {
-  const { data: messages, isLoading } = useMessages('follow_up')
+  const { data, isLoading } = useMessages('follow_up')
+  const messages = data?.messages || []
   const updateMessage = useUpdateMessage()
   const addToast = useAppStore((s) => s.addToast)
 
-  if (isLoading || !messages || messages.length === 0) return null
+  if (isLoading || messages.length === 0) return null
 
   return (
     <div className="mb-6 rounded-xl border border-orange-200 bg-orange-50 p-4">

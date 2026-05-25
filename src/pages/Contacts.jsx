@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Users, Copy, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Badge from '../components/ui/Badge'
@@ -10,8 +9,10 @@ import { ROLE_TYPES_MAP } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
 
 export default function Contacts() {
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const page = useAppStore((s) => s.contactsPage)
+  const setPage = useAppStore((s) => s.setContactsPage)
+  const limit = useAppStore((s) => s.contactsLimit)
+  const setLimit = useAppStore((s) => s.setContactsLimit)
   const { data, isLoading } = useAllContacts({ page, limit })
   const contacts = data?.contacts || []
   const total = data?.total || 0

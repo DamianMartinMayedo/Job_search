@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, Trash2 } from 'lucide-react'
 import Button from '../components/ui/Button'
@@ -12,14 +12,20 @@ import useAppStore from '../store/useAppStore'
 
 export default function Messages() {
   const [filter, setFilter] = useState('')
-  const [page, setPage] = useState(1)
-  const [limit, setLimit] = useState(10)
+  const page = useAppStore((s) => s.messagesPage)
+  const setPage = useAppStore((s) => s.setMessagesPage)
+  const limit = useAppStore((s) => s.messagesLimit)
+  const setLimit = useAppStore((s) => s.setMessagesLimit)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const addToast = useAppStore((s) => s.addToast)
+  const prevFilter = useRef(filter)
 
   useEffect(() => {
-    setPage(1)
-  }, [filter, limit])
+    if (prevFilter.current !== filter) {
+      prevFilter.current = filter
+      setPage(1)
+    }
+  }, [filter, setPage])
 
   const { data, isLoading } = useMessages(filter || undefined, { page, limit })
   const messages = data?.messages || []

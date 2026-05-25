@@ -14,8 +14,10 @@ const kpiCards = [
 ]
 
 export default function Dashboard() {
-  const { data: companies, isLoading: loadingCompanies } = useCompanies()
-  const { data: messages, isLoading: loadingMessages } = useMessages('follow_up')
+  const { data: companiesData, isLoading: loadingCompanies } = useCompanies()
+  const companies = companiesData?.companies || []
+  const { data: messagesData, isLoading: loadingMessages } = useMessages('follow_up')
+  const messages = messagesData?.messages || []
   const { data: activity, isLoading: loadingActivity } = useActivity(10)
 
   const followUpCount = messages?.length || 0

@@ -17,11 +17,30 @@ const useAppStore = create((set) => ({
   setCompanyFilter: (key, value) =>
     set((s) => ({
       companyFilters: { ...s.companyFilters, [key]: value },
+      companyPage: 1,
     })),
   clearCompanyFilters: () =>
     set({
       companyFilters: { status: '', sector: '', city: '', search: '' },
+      companyPage: 1,
     }),
+
+  companyPage: 1,
+  companyLimit: 10,
+  companySort: { field: 'created_at', dir: 'DESC' },
+  setCompanyPage: (page) => set({ companyPage: page }),
+  setCompanyLimit: (limit) => set({ companyLimit: limit, companyPage: 1 }),
+  setCompanySort: (sort) => set({ companySort: sort, companyPage: 1 }),
+
+  contactsPage: 1,
+  contactsLimit: 10,
+  setContactsPage: (page) => set({ contactsPage: page }),
+  setContactsLimit: (limit) => set({ contactsLimit: limit, contactsPage: 1 }),
+
+  messagesPage: 1,
+  messagesLimit: 10,
+  setMessagesPage: (page) => set({ messagesPage: page }),
+  setMessagesLimit: (limit) => set({ messagesLimit: limit, messagesPage: 1 }),
 }))
 
 export default useAppStore

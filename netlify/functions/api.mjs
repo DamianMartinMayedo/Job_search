@@ -41,7 +41,12 @@ async function handleCompanies(method, id, req) {
 
     let whereClause = ''
     const params = []
-    if (status) { params.push(status); whereClause += ` AND c.status = $${params.length}` }
+    if (status) {
+      params.push(status)
+      whereClause += ` AND c.status = $${params.length}`
+    } else {
+      whereClause += ` AND c.status != 'archived'`
+    }
     if (sector) { params.push(sector); whereClause += ` AND c.sector = $${params.length}` }
     if (city) { params.push(city); whereClause += ` AND c.city = $${params.length}` }
     if (search) { params.push(`%${search}%`); whereClause += ` AND (c.name ILIKE $${params.length} OR c.domain ILIKE $${params.length})` }

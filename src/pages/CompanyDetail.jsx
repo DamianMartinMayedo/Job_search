@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send, Briefcase } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send, Briefcase, Archive } from 'lucide-react'
 import Tabs from '../components/ui/Tabs'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -11,6 +11,7 @@ import { SkeletonCard } from '../components/ui/Skeleton'
 import { useCompany, useUpdateCompany } from '../hooks/useCompanies'
 import {
   useCreateContact,
+  useUpdateContact,
   useDeleteContact,
 } from '../hooks/useContacts'
 import {
@@ -40,6 +41,9 @@ export default function CompanyDetail() {
   const notesTimerRef = useRef(null)
   const [emailModal, setEmailModal] = useState({ open: false, value: '' })
   const [jobPortalModal, setJobPortalModal] = useState({ open: false, value: '' })
+  const [websiteModal, setWebsiteModal] = useState({ open: false, value: '' })
+  const [editingContact, setEditingContact] = useState(null)
+  const [archiveTarget, setArchiveTarget] = useState(null)
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
 
   const addToast = useAppStore((s) => s.addToast)
@@ -47,6 +51,7 @@ export default function CompanyDetail() {
   const { data: company, isLoading: loadingCompany, error: companyError } = useCompany(id)
   const updateCompany = useUpdateCompany()
   const createContact = useCreateContact()
+  const updateContact = useUpdateContact()
   const deleteContact = useDeleteContact()
   const createMessage = useCreateMessage()
   const updateMessage = useUpdateMessage()
@@ -99,6 +104,36 @@ export default function CompanyDetail() {
       addToast({ type: 'error', message: 'Error al copiar email' })
     })
     addToast({ type: 'success', message: 'Email copiado' })
+  }
+
+  const handleContactSubmit = async (formData) => {
+    try {
+      if (editingContact) {
+        await updateContact.mutateAsync({ id: editingContact.id, data: formData })
+        addToast({ type: 'success', message: `${formData.first_name} actualizado` })
+      } else {
+        await createContact.mutateAsync(formData)
+        addToast({ type: 'success', message: `${formData.first_name} añadido` })
+      }
+      setShowContactForm(false)
+      setEditingContact(null)
+    } catch (err) {
+      addToast({ type: 'error', message: `Error: ${err.message}` })
+    }
+  }
+
+  const handleArchive = () => {
+    updateCompany.mutate(
+      { id, data: { status: 'archived' } },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `${company.name} archivada` })
+          setArchiveTarget(null)
+        },
+        onError: (err) =>
+          addToast({ type: 'error', message: `Error: ${err.message}` }),
+      }
+    )
   }
 
   const status = company
@@ -162,15 +197,24 @@ export default function CompanyDetail() {
             {company.sector && <span>{company.sector}</span>}
             {company.city && <span>· {company.city}</span>}
             {company.website && (
-              <a
-                href={company.website}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
-              >
-                <ExternalLink size={14} />
-                {company.domain || company.website}
-              </a>
+              <div className="flex items-center gap-1">
+                <a
+                  href={company.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
+                >
+                  <ExternalLink size={14} />
+                  {company.domain || company.website}
+                </a>
+                <button
+                  onClick={() => setWebsiteModal({ open: true, value: company.website })}
+                  className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar web"
+                >
+                  <Pencil size={12} />
+                </button>
+              </div>
             )}
           </div>
           <div className="mt-2 flex items-center gap-2">
@@ -239,6 +283,15 @@ export default function CompanyDetail() {
               </option>
             ))}
           </select>
+          {company.status !== 'archived' && (
+            <button
+              onClick={() => setArchiveTarget(company)}
+              className="rounded-lg p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
+              title="Archivar empresa"
+            >
+              <Archive size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -260,7 +313,8 @@ export default function CompanyDetail() {
           {tab === 'contacts' && (
             <ContactsTab
               contacts={contacts}
-              onAdd={() => setShowContactForm(true)}
+              onAdd={() => { setEditingContact(null); setShowContactForm(true) }}
+              onEdit={(contact) => { setEditingContact(contact); setShowContactForm(true) }}
               onDelete={(contact) => setDeleteContactTarget(contact)}
               onCopy={handleCopyEmail}
             />
@@ -327,21 +381,10 @@ export default function CompanyDetail() {
       {showContactForm && (
         <ContactFormModal
           companyId={id}
-          onClose={() => setShowContactForm(false)}
-          onSubmit={(data) => {
-            createContact.mutate(data, {
-              onSuccess: () => {
-                setShowContactForm(false)
-                addToast({
-                  type: 'success',
-                  message: `${data.first_name} añadido`,
-                })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            })
-          }}
-          isSubmitting={createContact.isPending}
+          contact={editingContact}
+          onClose={() => { setShowContactForm(false); setEditingContact(null) }}
+          onSubmit={handleContactSubmit}
+          isSubmitting={createContact.isPending || updateContact.isPending}
         />
       )}
 
@@ -412,6 +455,38 @@ export default function CompanyDetail() {
         }}
       />
 
+      <PromptModal
+        open={websiteModal.open}
+        onClose={() => setWebsiteModal({ open: false, value: '' })}
+        title="Editar sitio web"
+        label="URL del sitio web"
+        placeholder="https://..."
+        initialValue={websiteModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(website) => {
+          updateCompany.mutate(
+            { id, data: { website } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: 'Web actualizada' })
+                setWebsiteModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
+      <ConfirmModal
+        open={!!archiveTarget}
+        onClose={() => setArchiveTarget(null)}
+        title="Archivar empresa"
+        message={`¿Archivar ${archiveTarget?.name || 'esta empresa'}? No aparecerá en la lista principal pero se conserva para evitar duplicados en futuras búsquedas.`}
+        confirmLabel="Archivar"
+        onConfirm={handleArchive}
+      />
+
       <ConfirmModal
         open={!!deleteContactTarget}
         onClose={() => setDeleteContactTarget(null)}
@@ -463,7 +538,7 @@ export default function CompanyDetail() {
   )
 }
 
-function ContactsTab({ contacts, onAdd, onDelete, onCopy }) {
+function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
   if (contacts.length === 0) {
     return (
       <EmptyState
@@ -524,6 +599,13 @@ function ContactsTab({ contacts, onAdd, onDelete, onCopy }) {
                   <ExternalLink size={16} />
                 </a>
               )}
+              <button
+                onClick={() => onEdit(c)}
+                className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                title="Editar"
+              >
+                <Pencil size={14} />
+              </button>
               <button
                 onClick={() => onDelete(c)}
                 className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
@@ -664,17 +746,18 @@ function ActivityTab({ activity }) {
   )
 }
 
-function ContactFormModal({ companyId, onClose, onSubmit, isSubmitting }) {
+function ContactFormModal({ companyId, contact, onClose, onSubmit, isSubmitting }) {
+  const isEditing = !!contact
   const [form, setForm] = useState({
     company_id: companyId,
-    first_name: '',
-    last_name: '',
-    role: '',
-    role_type: 'other',
-    email: '',
-    phone: '',
-    linkedin_url: '',
-    is_primary: false,
+    first_name: contact?.first_name || '',
+    last_name: contact?.last_name || '',
+    role: contact?.role || '',
+    role_type: contact?.role_type || 'other',
+    email: contact?.email || '',
+    phone: contact?.phone || '',
+    linkedin_url: contact?.linkedin_url || '',
+    is_primary: contact?.is_primary || false,
   })
 
   const handleChange = (field, value) => {
@@ -692,7 +775,7 @@ function ContactFormModal({ companyId, onClose, onSubmit, isSubmitting }) {
       <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900">
-            Añadir contacto
+            {isEditing ? 'Editar contacto' : 'Añadir contacto'}
           </h2>
           <button
             onClick={onClose}
