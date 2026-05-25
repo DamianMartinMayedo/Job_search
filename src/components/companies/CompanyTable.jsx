@@ -101,7 +101,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
       { ids, action: 'interest', interest_level: level },
       {
         onSuccess: () => {
-          addToast({ type: 'success', message: `${ids.length} empresas actualizadas a interés ${'⭐'.repeat(level)}` })
+          addToast({ type: 'success', message: `${ids.length} empresas actualizadas a interés ${level}/5` })
           clearSelection()
         },
         onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
@@ -165,7 +165,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
             <option value="">Interés...</option>
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n} className="text-slate-900">
-                {'⭐'.repeat(n)}
+                {n}
               </option>
             ))}
           </select>
@@ -268,8 +268,8 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               <div className="col-span-1 text-sm text-slate-600">
                 {company.city || '—'}
               </div>
-              <div className="col-span-1 text-sm text-slate-600">
-                {company.interest_level ? '⭐'.repeat(company.interest_level) : '—'}
+              <div className="col-span-1 text-sm text-slate-600 text-center">
+                {company.interest_level || '—'}
               </div>
               <div className="col-span-1">
                 <Badge className={status.color}>{status.label}</Badge>

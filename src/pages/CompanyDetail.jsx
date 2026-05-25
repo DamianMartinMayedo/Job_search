@@ -326,6 +326,29 @@ export default function CompanyDetail() {
               </button>
             )}
           </div>
+          <div className="mt-2 flex items-center gap-2">
+            {company.interest_level ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Interés: </span>
+                <span className="text-sm font-medium text-slate-700">{company.interest_level}/5</span>
+                <button
+                  onClick={() => setInterestModal({ open: true, value: String(company.interest_level) })}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar interés"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setInterestModal({ open: true, value: '' })}
+                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+              >
+                <Plus size={14} />
+                Añadir interés
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -741,58 +764,11 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
               >
                 <Trash2 size={16} />
               </button>
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            {company.interest_level ? (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">Interés: </span>
-                <span className="text-sm text-amber-600">{'★'.repeat(company.interest_level)}{'☆'.repeat(5 - company.interest_level)}</span>
-                <button
-                  onClick={() => setInterestModal({ open: true, value: String(company.interest_level) })}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
-                  title="Editar interés"
-                >
-                  <Pencil size={14} />
-                </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setInterestModal({ open: true, value: '' })}
-                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
-              >
-                <Plus size={14} />
-                Añadir interés
-              </button>
-            )}
           </div>
         </div>
         ))}
-      </div>
-    </div>
-  )
-}
 
-function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusChange, onSend, onDelete, isMutating }) {
-  const [deleteTarget, setDeleteTarget] = useState(null)
-
-  if (messages.length === 0) {
-    return (
-      <EmptyState
-        icon={Mail}
-        title="Sin mensajes"
-        description="Crea un email de contacto para esta empresa"
-        action={
-          <Button onClick={onAdd}>
-            <Mail size={18} />
-            Crear mensaje
-          </Button>
-        }
-      />
-    )
-  }
-
-  return (
-    <div>
       <div className="divide-y divide-slate-100">
         {messages.map((m) => {
           const statusInfo = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
