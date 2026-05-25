@@ -3,6 +3,7 @@ import { json, error, unauthorized, notFound } from './utils/response.mjs'
 import sql from './utils/db.mjs'
 import { validateBody, clampOffset } from './utils/validate.mjs'
 import { sendEmail } from './utils/mailer.mjs'
+import { runAllSources } from './utils/fetchers/index.mjs'
 
 function getCookie(req, name) {
   const header = req.headers.get('cookie') || ''
@@ -775,6 +776,146 @@ async function handleDocumentPairs(method, id, req) {
   return json({ error: 'Method not allowed' }, 405)
 }
 
+async function handleJobOffers(method, id, req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+
+  if (method === 'GET' && !id) {
+    const url = new URL(req.url)
+    const status = url.searchParams.get('status')
+    const sourceId = url.searchParams.get('source_id')
+    const companyId = url.searchParams.get('company_id')
+    const search = url.searchParams.get('search')
+    const sortBy = url.searchParams.get('sortBy') || 'posted_at'
+    const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
+
+    const validSort = { posted_at: 'o.posted_at DESC NULLS LAST', scraped_at: 'o.scraped_at DESC', match_score: 'o.match_score DESC NULLS LAST', title: 'o.title ASC' }
+    const orderBy = validSort[sortBy] || validSort.posted_at
+
+    let whereClause = 'WHERE 1=1'
+    const params = []
+    if (status) { params.push(status); whereClause += ` AND o.status = $${params.length}` }
+    if (sourceId) { params.push(sourceId); whereClause += ` AND o.source_id = $${params.length}` }
+    if (companyId) { params.push(companyId); whereClause += ` AND o.company_id = $${params.length}` }
+    if (search) { params.push(`%${search}%`); whereClause += ` AND (o.title ILIKE $${params.length} OR o.company_name ILIKE $${params.length})` }
+
+    const baseQuery = `FROM job_offers o
+      LEFT JOIN job_sources s ON o.source_id = s.id
+      LEFT JOIN companies c ON o.company_id = c.id
+      ${whereClause}`
+
+    const rows = await sql.unsafe(
+      `SELECT o.*, s.name as source_name, c.name as company_known_name,
+              COUNT(*) OVER ()::int as total_count
+       ${baseQuery}
+       ORDER BY ${orderBy}
+       LIMIT ${limit} OFFSET ${offset}`,
+      params
+    )
+
+    let total = rows[0]?.total_count ?? 0
+    if (rows.length === 0) {
+      const [{ total: t }] = await sql.unsafe(
+        `SELECT COUNT(*)::int as total ${baseQuery}`,
+        params
+      )
+      total = t
+    }
+    const offers = rows.map(({ total_count, ...rest }) => rest)
+
+    return json({ offers, total, page, limit })
+  }
+
+  if (method === 'GET' && id) {
+    const [offer] = await sql`
+      SELECT o.*, s.name as source_name, c.name as company_known_name
+      FROM job_offers o
+      LEFT JOIN job_sources s ON o.source_id = s.id
+      LEFT JOIN companies c ON o.company_id = c.id
+      WHERE o.id = ${id}
+    `
+    if (!offer) return notFound()
+    return json(offer)
+  }
+
+  if (method === 'PATCH' && id) {
+    const body = await req.json()
+    const valErr = validateBody(body)
+    if (valErr) return error(valErr, 400)
+    const keys = Object.keys(body).filter((k) => body[k] !== undefined)
+    const [offer] = await sql`
+      UPDATE job_offers SET ${sql(body, ...keys)}
+      WHERE id = ${id}
+      RETURNING *
+    `
+    if (!offer) return notFound()
+    return json(offer)
+  }
+
+  if (method === 'DELETE' && id) {
+    const [offer] = await sql`DELETE FROM job_offers WHERE id = ${id} RETURNING id`
+    if (!offer) return notFound()
+    return json({ ok: true })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
+async function handleJobSources(method, id, req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+
+  if (id === 'run-now' && method === 'POST') {
+    const body = await req.json().catch(() => ({}))
+    const results = await runAllSources(body.source_id ? { sourceId: body.source_id } : {})
+    return json({ ok: true, sources: results })
+  }
+
+  if (method === 'GET' && !id) {
+    const sources = await sql`
+      SELECT s.*, COUNT(o.id)::int as offers_count
+      FROM job_sources s
+      LEFT JOIN job_offers o ON o.source_id = s.id
+      GROUP BY s.id
+      ORDER BY s.name
+    `
+    return json(sources)
+  }
+
+  if (method === 'POST') {
+    const body = await req.json()
+    const valErr = validateBody(body)
+    if (valErr) return error(valErr, 400)
+    if (!body.name || !body.url || !body.type) return error('name, url y type requeridos', 400)
+    const keys = Object.keys(body).filter((k) => body[k] !== undefined)
+    const [source] = await sql`
+      INSERT INTO job_sources ${sql(body, ...keys)}
+      RETURNING *
+    `
+    return json(source, 201)
+  }
+
+  if (method === 'PATCH' && id) {
+    const body = await req.json()
+    const valErr = validateBody(body)
+    if (valErr) return error(valErr, 400)
+    const keys = Object.keys(body).filter((k) => body[k] !== undefined)
+    const [source] = await sql`
+      UPDATE job_sources SET ${sql(body, ...keys)}
+      WHERE id = ${id}
+      RETURNING *
+    `
+    if (!source) return notFound()
+    return json(source)
+  }
+
+  if (method === 'DELETE' && id) {
+    const [source] = await sql`DELETE FROM job_sources WHERE id = ${id} RETURNING id`
+    if (!source) return notFound()
+    return json({ ok: true })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -816,6 +957,10 @@ export default async function handler(req) {
         return handleDocuments(req.method, id, req)
       case 'document_pairs':
         return handleDocumentPairs(req.method, id, req)
+      case 'job-offers':
+        return handleJobOffers(req.method, id, req)
+      case 'job-sources':
+        return handleJobSources(req.method, id, req)
       default:
         return json({ error: 'Not found' }, 404)
     }

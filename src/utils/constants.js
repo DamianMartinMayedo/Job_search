@@ -57,6 +57,18 @@ export const SECTORS = [
   'Otro',
 ]
 
+export const OFFER_STATUS = [
+  { value: 'new', label: 'Nueva', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+  { value: 'interesting', label: 'Interesante', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  { value: 'applied', label: 'Aplicada', color: 'bg-green-100 text-green-700 border-green-200' },
+  { value: 'rejected', label: 'Descartada', color: 'bg-gray-100 text-gray-500 border-gray-200' },
+  { value: 'expired', label: 'Expirada', color: 'bg-slate-100 text-slate-500 border-slate-200' },
+]
+
+export const OFFER_STATUS_MAP = Object.fromEntries(
+  OFFER_STATUS.map((s) => [s.value, s])
+)
+
 export const INTEREST_LEVELS = [
   { value: 1, label: 'Bajo' },
   { value: 2, label: 'Medio-bajo' },

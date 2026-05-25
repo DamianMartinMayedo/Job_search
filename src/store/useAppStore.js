@@ -41,6 +41,14 @@ const useAppStore = create((set) => ({
   messagesLimit: 10,
   setMessagesPage: (page) => set({ messagesPage: page }),
   setMessagesLimit: (limit) => set({ messagesLimit: limit, messagesPage: 1 }),
+
+  offersPage: 1,
+  offersLimit: 20,
+  offersFilters: { status: 'new', source_id: '', search: '' },
+  setOffersPage: (page) => set({ offersPage: page }),
+  setOffersLimit: (limit) => set({ offersLimit: limit, offersPage: 1 }),
+  setOffersFilter: (key, value) =>
+    set((s) => ({ offersFilters: { ...s.offersFilters, [key]: value }, offersPage: 1 })),
 }))
 
 export default useAppStore

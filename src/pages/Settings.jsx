@@ -9,6 +9,7 @@ import { useSettings, useSaveSettings } from '../hooks/useSettings'
 import { useDocumentPairs, useCreateDocumentPair, useDeleteDocumentPair } from '../hooks/useDocuments'
 import { SECTORS } from '../utils/constants'
 import useAppStore from '../store/useAppStore'
+import JobSourcesSection from '../components/offers/JobSourcesSection'
 
 export default function Settings() {
   const { data: settings, isLoading } = useSettings()
@@ -375,6 +376,8 @@ export default function Settings() {
           )}
         </div>
       </div>
+
+      <JobSourcesSection />
 
       <Modal
         open={pairModalOpen}

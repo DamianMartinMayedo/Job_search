@@ -4,6 +4,7 @@ import {
   Building2,
   Users,
   Mail,
+  Briefcase,
   FileText,
   Settings,
   ChevronLeft,
@@ -11,12 +12,14 @@ import {
 } from 'lucide-react'
 import useAppStore from '../../store/useAppStore'
 import { useAuth } from '../../hooks/useAuth'
+import { useJobOffers } from '../../hooks/useJobOffers'
 
 const navItems = [
   { to: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/app/companies', icon: Building2, label: 'Empresas' },
   { to: '/app/contacts', icon: Users, label: 'Contactos' },
   { to: '/app/messages', icon: Mail, label: 'Mensajes' },
+  { to: '/app/offers', icon: Briefcase, label: 'Ofertas', badgeKey: 'new-offers' },
   { to: '/app/templates', icon: FileText, label: 'Plantillas' },
 ]
 
@@ -37,6 +40,8 @@ export default function Sidebar() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar)
   const { session, signOut } = useAuth()
   const email = session?.user?.email || ''
+  const { data: newOffers } = useJobOffers({ status: 'new', limit: 1, page: 1 })
+  const badges = { 'new-offers': newOffers?.total || 0 }
 
   return (
     <>
@@ -61,19 +66,34 @@ export default function Sidebar() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center' : ''} ${isActive ? (collapsed ? collapsedActiveClass : activeClass) : collapsed ? collapsedInactiveClass : inactiveClass}`
-              }
-              title={collapsed ? item.label : undefined}
-            >
-              <item.icon size={20} />
-              {!collapsed && <span>{item.label}</span>}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const badge = item.badgeKey ? badges[item.badgeKey] : 0
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${collapsed ? 'justify-center' : ''} ${isActive ? (collapsed ? collapsedActiveClass : activeClass) : collapsed ? collapsedInactiveClass : inactiveClass}`
+                }
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon size={20} />
+                {!collapsed && (
+                  <>
+                    <span className="flex-1">{item.label}</span>
+                    {badge > 0 && (
+                      <span className="rounded-full bg-primary-100 px-1.5 py-0.5 text-xs font-semibold text-primary-700">
+                        {badge}
+                      </span>
+                    )}
+                  </>
+                )}
+                {collapsed && badge > 0 && (
+                  <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary-500" />
+                )}
+              </NavLink>
+            )
+          })}
         </nav>
 
         <div className="border-t border-slate-200 p-2">
