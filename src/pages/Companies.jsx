@@ -112,6 +112,13 @@ export default function Companies() {
           />
         </div>
 
+        <Input
+          placeholder="Ciudad..."
+          value={filters.city}
+          onChange={(e) => setFilter('city', e.target.value)}
+          className="min-w-32"
+        />
+
         <select
           value={filters.status}
           onChange={(e) => setFilter('status', e.target.value)}
