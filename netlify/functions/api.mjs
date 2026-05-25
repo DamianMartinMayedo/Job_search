@@ -51,13 +51,8 @@ async function handleCompanies(method, id, req) {
     if (city) { params.push(city); whereClause += ` AND c.city = $${params.length}` }
     if (search) { params.push(`%${search}%`); whereClause += ` AND (c.name ILIKE $${params.length} OR c.domain ILIKE $${params.length})` }
 
-    const [{ total }] = await sql.unsafe(
-      `SELECT COUNT(*)::int as total FROM companies c WHERE 1=1 ${whereClause}`,
-      params
-    )
-
-    const companies = await sql.unsafe(
-      `SELECT c.*, ct.email as primary_email
+    const rows = await sql.unsafe(
+      `SELECT c.*, ct.email as primary_email, COUNT(*) OVER ()::int as total_count
        FROM companies c
        LEFT JOIN LATERAL (
          SELECT email FROM contacts
@@ -70,6 +65,16 @@ async function handleCompanies(method, id, req) {
       params
     )
 
+    let total = rows[0]?.total_count ?? 0
+    if (rows.length === 0) {
+      const [{ total: t }] = await sql.unsafe(
+        `SELECT COUNT(*)::int as total FROM companies c WHERE 1=1 ${whereClause}`,
+        params
+      )
+      total = t
+    }
+    const companies = rows.map(({ total_count, ...rest }) => rest)
+
     return json({ companies, total, page, limit })
   }
 
@@ -77,19 +82,21 @@ async function handleCompanies(method, id, req) {
     const [company] = await sql`SELECT * FROM companies WHERE id = ${id}`
     if (!company) return notFound()
 
-    const contacts = await sql`SELECT * FROM contacts WHERE company_id = ${id} ORDER BY created_at DESC`
-    const messages = await sql`
-      SELECT m.*, c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
-             et.name as template_name
-      FROM messages m
-      LEFT JOIN contacts c ON m.contact_id = c.id
-      LEFT JOIN email_templates et ON m.template_id = et.id
-      WHERE m.company_id = ${id}
-      ORDER BY m.created_at DESC
-    `
-    const activity = await sql`
-      SELECT * FROM activity_log WHERE company_id = ${id} ORDER BY created_at DESC LIMIT 50
-    `
+    const [contacts, messages, activity] = await Promise.all([
+      sql`SELECT * FROM contacts WHERE company_id = ${id} ORDER BY created_at DESC`,
+      sql`
+        SELECT m.*, c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
+               et.name as template_name
+        FROM messages m
+        LEFT JOIN contacts c ON m.contact_id = c.id
+        LEFT JOIN email_templates et ON m.template_id = et.id
+        WHERE m.company_id = ${id}
+        ORDER BY m.created_at DESC
+      `,
+      sql`
+        SELECT * FROM activity_log WHERE company_id = ${id} ORDER BY created_at DESC LIMIT 50
+      `,
+    ])
 
     return json({ ...company, contacts, messages, activity })
   }
@@ -175,13 +182,8 @@ async function handleContacts(method, id, req) {
       whereClause = `WHERE c.company_id = $1`
     }
 
-    const [{ total }] = await sql.unsafe(
-      `SELECT COUNT(*)::int as total FROM contacts c ${whereClause}`,
-      params
-    )
-
-    const contacts = await sql.unsafe(
-      `SELECT c.*, co.name as company_name
+    const rows = await sql.unsafe(
+      `SELECT c.*, co.name as company_name, COUNT(*) OVER ()::int as total_count
        FROM contacts c
        JOIN companies co ON c.company_id = co.id
        ${whereClause}
@@ -189,6 +191,16 @@ async function handleContacts(method, id, req) {
        LIMIT ${limit} OFFSET ${offset}`,
       params
     )
+
+    let total = rows[0]?.total_count ?? 0
+    if (rows.length === 0) {
+      const [{ total: t }] = await sql.unsafe(
+        `SELECT COUNT(*)::int as total FROM contacts c ${whereClause}`,
+        params
+      )
+      total = t
+    }
+    const contacts = rows.map(({ total_count, ...rest }) => rest)
 
     return json({ contacts, total, page, limit })
   }
@@ -278,20 +290,26 @@ async function handleMessages(method, id, req) {
       LEFT JOIN email_templates et ON m.template_id = et.id
       ${whereClause}`
 
-    const [{ total }] = await sql.unsafe(
-      `SELECT COUNT(*)::int as total ${baseQuery}`,
-      params
-    )
-
-    const messages = await sql.unsafe(
+    const rows = await sql.unsafe(
       `SELECT m.*, co.name as company_name, co.sector,
               c.first_name as contact_first_name, c.role as contact_role, c.email as contact_email,
-              et.name as template_name
+              et.name as template_name,
+              COUNT(*) OVER ()::int as total_count
        ${baseQuery}
        ${orderClause}
        LIMIT ${limit} OFFSET ${offset}`,
       params
     )
+
+    let total = rows[0]?.total_count ?? 0
+    if (rows.length === 0) {
+      const [{ total: t }] = await sql.unsafe(
+        `SELECT COUNT(*)::int as total ${baseQuery}`,
+        params
+      )
+      total = t
+    }
+    const messages = rows.map(({ total_count, ...rest }) => rest)
 
     return json({ messages, total, page, limit })
   }
