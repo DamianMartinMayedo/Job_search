@@ -609,6 +609,9 @@ export default function CompanyDetail() {
         placeholder="3"
         initialValue={interestModal.value}
         isSubmitting={updateCompany.isPending}
+        type="number"
+        min="1"
+        max="5"
         onSubmit={(val) => {
           const level = parseInt(val)
           if (isNaN(level) || level < 1 || level > 5) {

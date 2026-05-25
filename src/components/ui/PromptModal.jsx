@@ -12,6 +12,9 @@ export default function PromptModal({
   initialValue = '',
   onSubmit,
   isSubmitting = false,
+  type = 'text',
+  min,
+  max,
 }) {
   const [value, setValue] = useState(initialValue)
 
@@ -33,6 +36,9 @@ export default function PromptModal({
           placeholder={placeholder}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          type={type}
+          min={min}
+          max={max}
           autoFocus
         />
         <div className="flex justify-end gap-3">
