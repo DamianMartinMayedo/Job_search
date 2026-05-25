@@ -26,26 +26,34 @@ import { COMPANY_STATUS_MAP, ROLE_TYPES_MAP, MESSAGE_STATUS_MAP } from '../utils
 import useAppStore from '../store/useAppStore'
 
 const tabDefs = [
-  { value: 'contacts', label: 'Contactos' },
   { value: 'messages', label: 'Mensajes' },
+  { value: 'contacts', label: 'Contactos' },
   { value: 'notes', label: 'Notas' },
   { value: 'activity', label: 'Actividad' },
 ]
 
+// Definición declarativa de cada campo editable inline. Antes había 6 PromptModals
+// separados, todos haciendo lo mismo (updateCompany.mutate con un campo distinto).
+// Ahora un solo modal lee el `kind` y deriva título, label, tipo y transform.
+const EDIT_FIELDS = {
+  name: { field: 'name', title: 'Editar nombre', label: 'Nombre', placeholder: 'Nombre de la empresa', type: 'text' },
+  email: { field: 'email', title: 'Editar email', label: 'Email', placeholder: 'contacto@empresa.com', type: 'email' },
+  website: { field: 'website', title: 'Editar sitio web', label: 'URL del sitio', placeholder: 'https://empresa.com', type: 'url' },
+  jobPortal: { field: 'job_portal_url', title: 'Editar portal de empleo', label: 'URL del portal', placeholder: 'https://empresa.com/careers', type: 'url' },
+  myRole: { field: 'my_role', title: 'Editar rol que ofreces', label: 'Rol', placeholder: 'Senior UX Designer', type: 'text' },
+  interest: { field: 'interest_level', title: 'Nivel de interés', label: 'Interés (1-5)', placeholder: '1-5', type: 'number', min: 1, max: 5, transform: (v) => parseInt(v, 10) },
+}
+
 export default function CompanyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('contacts')
+  const [tab, setTab] = useState('messages')
   const [showContactForm, setShowContactForm] = useState(false)
   const [showMessageForm, setShowMessageForm] = useState(false)
   const [notes, setNotes] = useState('')
   const notesTimerRef = useRef(null)
-  const [emailModal, setEmailModal] = useState({ open: false, value: '' })
-  const [jobPortalModal, setJobPortalModal] = useState({ open: false, value: '' })
-  const [websiteModal, setWebsiteModal] = useState({ open: false, value: '' })
-  const [nameModal, setNameModal] = useState({ open: false, value: '' })
-  const [myRoleModal, setMyRoleModal] = useState({ open: false, value: '' })
-  const [interestModal, setInterestModal] = useState({ open: false, value: '' })
+  // Un único state para todos los inline edits: { kind: 'email'|'website'|..., value: string } | null
+  const [editField, setEditField] = useState(null)
   const [editingContact, setEditingContact] = useState(null)
   const [archiveTarget, setArchiveTarget] = useState(null)
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
@@ -219,7 +227,7 @@ export default function CompanyDetail() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
             <button
-              onClick={() => setNameModal({ open: true, value: company.name })}
+              onClick={() => setEditField({ kind: 'name', value: company.name || '' })}
               className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
               title="Editar nombre"
             >
@@ -242,7 +250,7 @@ export default function CompanyDetail() {
                   {company.domain || company.website}
                 </a>
                 <button
-                  onClick={() => setWebsiteModal({ open: true, value: company.website })}
+                  onClick={() => setEditField({ kind: 'website', value: company.website || '' })}
                   className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                   title="Editar web"
                 >
@@ -256,7 +264,7 @@ export default function CompanyDetail() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-slate-600">{company.email}</span>
                 <button
-                  onClick={() => setEmailModal({ open: true, value: company.email })}
+                  onClick={() => setEditField({ kind: 'email', value: company.email || '' })}
                   className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                   title="Editar email"
                 >
@@ -265,7 +273,7 @@ export default function CompanyDetail() {
               </div>
             ) : (
               <button
-                onClick={() => setEmailModal({ open: true, value: '' })}
+                onClick={() => setEditField({ kind: 'email', value: '' })}
                 className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
               >
                 <Plus size={14} />
@@ -286,7 +294,7 @@ export default function CompanyDetail() {
                   Portal de empleo
                 </a>
                 <button
-                  onClick={() => setJobPortalModal({ open: true, value: company.job_portal_url })}
+                  onClick={() => setEditField({ kind: 'jobPortal', value: company.job_portal_url || '' })}
                   className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                   title="Editar portal de empleo"
                 >
@@ -295,7 +303,7 @@ export default function CompanyDetail() {
               </div>
             ) : (
               <button
-                onClick={() => setJobPortalModal({ open: true, value: '' })}
+                onClick={() => setEditField({ kind: 'jobPortal', value: '' })}
                 className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
               >
                 <Plus size={14} />
