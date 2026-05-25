@@ -764,11 +764,35 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
               >
                 <Trash2 size={16} />
               </button>
-              </div>
+               </div>
           </div>
-        </div>
         ))}
+      </div>
+    </div>
+  )
+}
 
+function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusChange, onSend, onDelete, isMutating }) {
+  const [deleteTarget, setDeleteTarget] = useState(null)
+
+  if (messages.length === 0) {
+    return (
+      <EmptyState
+        icon={Mail}
+        title="Sin mensajes"
+        description="Crea un email de contacto para esta empresa"
+        action={
+          <Button onClick={onAdd}>
+            <Mail size={18} />
+            Crear mensaje
+          </Button>
+        }
+      />
+    )
+  }
+
+  return (
+    <div>
       <div className="divide-y divide-slate-100">
         {messages.map((m) => {
           const statusInfo = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
