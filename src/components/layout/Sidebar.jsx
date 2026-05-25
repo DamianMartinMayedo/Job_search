@@ -2,8 +2,6 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   Building2,
-  Users,
-  Mail,
   Briefcase,
   FileText,
   Settings,
@@ -17,8 +15,6 @@ import { useJobOffers } from '../../hooks/useJobOffers'
 const navItems = [
   { to: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/app/companies', icon: Building2, label: 'Empresas' },
-  { to: '/app/contacts', icon: Users, label: 'Contactos' },
-  { to: '/app/messages', icon: Mail, label: 'Mensajes' },
   { to: '/app/offers', icon: Briefcase, label: 'Ofertas', badgeKey: 'new-offers' },
   { to: '/app/templates', icon: FileText, label: 'Plantillas' },
 ]

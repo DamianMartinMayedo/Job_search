@@ -7,8 +7,6 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Companies from './pages/Companies'
 import CompanyDetail from './pages/CompanyDetail'
-import Contacts from './pages/Contacts'
-import Messages from './pages/Messages'
 import Offers from './pages/Offers'
 import Templates from './pages/Templates'
 import Settings from './pages/Settings'
@@ -58,8 +56,9 @@ function AppRoutes() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="companies" element={<Companies />} />
         <Route path="companies/:id" element={<CompanyDetail />} />
-        <Route path="contacts" element={<Contacts />} />
-        <Route path="messages" element={<Messages />} />
+        {/* Vistas globales antiguas redirigen al Dashboard (que ahora absorbe sus casos de uso) */}
+        <Route path="contacts" element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="messages" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="offers" element={<Offers />} />
         <Route path="templates" element={<Templates />} />
         <Route path="settings" element={<Settings />} />

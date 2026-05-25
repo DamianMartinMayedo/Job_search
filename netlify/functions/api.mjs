@@ -994,6 +994,58 @@ async function handleJobOffers(method, id, req) {
   return json({ error: 'Method not allowed' }, 405)
 }
 
+async function handleDashboard(method, id, req) {
+  if (!sql) return error('Base de datos no configurada', 500)
+
+  if (id === 'stats' && method === 'GET') {
+    const today = new Date().toISOString().split('T')[0]
+    const [
+      newOffers7d,
+      drafts,
+      waitingReply,
+      followupsToday,
+      response30d,
+      byStatus,
+    ] = await Promise.all([
+      sql`SELECT COUNT(*)::int AS n FROM job_offers WHERE status = 'new' AND scraped_at >= NOW() - INTERVAL '7 days'`,
+      sql`SELECT COUNT(*)::int AS n FROM messages WHERE status = 'draft'`,
+      sql`SELECT COUNT(*)::int AS n FROM messages WHERE status = 'sent' AND replied_at IS NULL`,
+      sql`SELECT COUNT(*)::int AS n FROM messages WHERE follow_up_at <= ${today} AND follow_up_done = false`,
+      sql`
+        SELECT
+          COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days')::int AS sent_30d,
+          COUNT(*) FILTER (WHERE sent_at >= NOW() - INTERVAL '30 days' AND replied_at IS NOT NULL)::int AS replied_30d
+        FROM messages
+      `,
+      sql`
+        SELECT status, COUNT(*)::int AS n
+        FROM companies
+        WHERE status != 'archived'
+        GROUP BY status
+      `,
+    ])
+
+    const sent30d = response30d[0]?.sent_30d || 0
+    const replied30d = response30d[0]?.replied_30d || 0
+    const responseRate = sent30d > 0 ? Math.round((replied30d / sent30d) * 100) : null
+
+    const companyByStatus = Object.fromEntries(byStatus.map((r) => [r.status, r.n]))
+
+    return json({
+      newOffers7d: newOffers7d[0].n,
+      drafts: drafts[0].n,
+      waitingReply: waitingReply[0].n,
+      followupsToday: followupsToday[0].n,
+      responseRate,           // null si no hay sent en 30d
+      responseRateSent: sent30d,
+      responseRateReplied: replied30d,
+      companyByStatus,
+    })
+  }
+
+  return json({ error: 'Method not allowed' }, 405)
+}
+
 async function handleJobSources(method, id, req) {
   if (!sql) return error('Base de datos no configurada', 500)
 
@@ -1119,6 +1171,8 @@ export default async function handler(req) {
         return handleJobOffers(req.method, id, req)
       case 'job-sources':
         return handleJobSources(req.method, id, req)
+      case 'dashboard':
+        return handleDashboard(req.method, id, req)
       default:
         return json({ error: 'Not found' }, 404)
     }

@@ -32,16 +32,6 @@ const useAppStore = create((set) => ({
   setCompanyLimit: (limit) => set({ companyLimit: limit, companyPage: 1 }),
   setCompanySort: (sort) => set({ companySort: sort, companyPage: 1 }),
 
-  contactsPage: 1,
-  contactsLimit: 10,
-  setContactsPage: (page) => set({ contactsPage: page }),
-  setContactsLimit: (limit) => set({ contactsLimit: limit, contactsPage: 1 }),
-
-  messagesPage: 1,
-  messagesLimit: 10,
-  setMessagesPage: (page) => set({ messagesPage: page }),
-  setMessagesLimit: (limit) => set({ messagesLimit: limit, messagesPage: 1 }),
-
   offersPage: 1,
   offersLimit: 20,
   offersFilters: { status: 'new', source_id: '', search: '' },
