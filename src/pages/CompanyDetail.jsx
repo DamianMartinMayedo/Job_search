@@ -43,6 +43,7 @@ export default function CompanyDetail() {
   const [emailModal, setEmailModal] = useState({ open: false, value: '' })
   const [jobPortalModal, setJobPortalModal] = useState({ open: false, value: '' })
   const [websiteModal, setWebsiteModal] = useState({ open: false, value: '' })
+  const [nameModal, setNameModal] = useState({ open: false, value: '' })
   const [myRoleModal, setMyRoleModal] = useState({ open: false, value: '' })
   const [editingContact, setEditingContact] = useState(null)
   const [archiveTarget, setArchiveTarget] = useState(null)
@@ -216,6 +217,13 @@ export default function CompanyDetail() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
+            <button
+              onClick={() => setNameModal({ open: true, value: company.name })}
+              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+              title="Editar nombre"
+            >
+              <Pencil size={14} />
+            </button>
             <Badge className={status.color}>{status.label}</Badge>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -538,6 +546,29 @@ export default function CompanyDetail() {
               onSuccess: () => {
                 addToast({ type: 'success', message: company?.my_role ? 'Rol actualizado' : 'Rol añadido' })
                 setMyRoleModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
+      <PromptModal
+        open={nameModal.open}
+        onClose={() => setNameModal({ open: false, value: '' })}
+        title="Editar nombre de la empresa"
+        label="Nombre"
+        placeholder="Nombre de la empresa"
+        initialValue={nameModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(name) => {
+          updateCompany.mutate(
+            { id, data: { name } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: 'Nombre actualizado' })
+                setNameModal({ open: false, value: '' })
               },
               onError: (err) =>
                 addToast({ type: 'error', message: `Error: ${err.message}` }),
