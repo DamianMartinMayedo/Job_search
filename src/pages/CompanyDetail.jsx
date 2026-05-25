@@ -45,6 +45,7 @@ export default function CompanyDetail() {
   const [websiteModal, setWebsiteModal] = useState({ open: false, value: '' })
   const [nameModal, setNameModal] = useState({ open: false, value: '' })
   const [myRoleModal, setMyRoleModal] = useState({ open: false, value: '' })
+  const [interestModal, setInterestModal] = useState({ open: false, value: '' })
   const [editingContact, setEditingContact] = useState(null)
   const [archiveTarget, setArchiveTarget] = useState(null)
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
@@ -577,6 +578,34 @@ export default function CompanyDetail() {
         }}
       />
 
+      <PromptModal
+        open={interestModal.open}
+        onClose={() => setInterestModal({ open: false, value: '' })}
+        title={company?.interest_level ? 'Editar interés' : 'Añadir interés'}
+        label="Nivel de interés (1-5)"
+        placeholder="3"
+        initialValue={interestModal.value}
+        isSubmitting={updateCompany.isPending}
+        onSubmit={(val) => {
+          const level = parseInt(val)
+          if (isNaN(level) || level < 1 || level > 5) {
+            addToast({ type: 'error', message: 'El interés debe ser un número del 1 al 5' })
+            return
+          }
+          updateCompany.mutate(
+            { id, data: { interest_level: level } },
+            {
+              onSuccess: () => {
+                addToast({ type: 'success', message: company?.interest_level ? 'Interés actualizado' : 'Interés añadido' })
+                setInterestModal({ open: false, value: '' })
+              },
+              onError: (err) =>
+                addToast({ type: 'error', message: `Error: ${err.message}` }),
+            }
+          )
+        }}
+      />
+
       <ConfirmModal
         open={!!archiveTarget}
         onClose={() => setArchiveTarget(null)}
@@ -712,8 +741,31 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
               >
                 <Trash2 size={16} />
               </button>
-            </div>
           </div>
+          <div className="mt-2 flex items-center gap-2">
+            {company.interest_level ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Interés: </span>
+                <span className="text-sm text-amber-600">{'★'.repeat(company.interest_level)}{'☆'.repeat(5 - company.interest_level)}</span>
+                <button
+                  onClick={() => setInterestModal({ open: true, value: String(company.interest_level) })}
+                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  title="Editar interés"
+                >
+                  <Pencil size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setInterestModal({ open: true, value: '' })}
+                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+              >
+                <Plus size={14} />
+                Añadir interés
+              </button>
+            )}
+          </div>
+        </div>
         ))}
       </div>
     </div>

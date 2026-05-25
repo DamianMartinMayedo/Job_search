@@ -36,7 +36,7 @@ async function handleCompanies(method, id, req) {
     const sortDir = url.searchParams.get('sortDir') || 'DESC'
     const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
 
-    const validSortCols = ['name', 'sector', 'city', 'status', 'created_at', 'primary_email']
+    const validSortCols = ['name', 'sector', 'city', 'status', 'interest_level', 'created_at', 'primary_email']
     const col = validSortCols.includes(sortBy) ? sortBy : 'created_at'
     const dir = sortDir.toUpperCase() === 'ASC' ? 'ASC' : 'DESC'
 
@@ -161,13 +161,15 @@ async function handleCompanies(method, id, req) {
 
   if (method === 'POST' && id === 'batch') {
     const body = await req.json()
-    const { ids, action, status } = body
+    const { ids, action, status, interest_level } = body
     if (!ids || !Array.isArray(ids) || ids.length === 0)
       return error('ids requerido (array de UUIDs)', 400)
-    if (!['archive', 'delete', 'status'].includes(action))
+    if (!['archive', 'delete', 'status', 'interest'].includes(action))
       return error('acción no válida', 400)
     if (action === 'status' && !status)
       return error('status requerido para la acción status', 400)
+    if (action === 'interest' && (interest_level == null || interest_level < 1 || interest_level > 5))
+      return error('interest_level requerido (1-5) para la acción interest', 400)
 
     if (action === 'delete') {
       await sql`DELETE FROM companies WHERE id = ANY(${ids})`
@@ -201,6 +203,11 @@ async function handleCompanies(method, id, req) {
           }, 'company_id', 'type', 'description', 'metadata')}
         `
       }
+      return json({ ok: true, count: ids.length })
+    }
+
+    if (action === 'interest') {
+      await sql`UPDATE companies SET interest_level = ${interest_level}, updated_at = NOW() WHERE id = ANY(${ids})`
       return json({ ok: true, count: ids.length })
     }
   }

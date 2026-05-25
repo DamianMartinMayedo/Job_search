@@ -94,6 +94,21 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
     )
   }
 
+  const handleBulkInterest = (level) => {
+    if (selectedIds.size === 0) return
+    const ids = Array.from(selectedIds)
+    batchCompanies.mutate(
+      { ids, action: 'interest', interest_level: level },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `${ids.length} empresas actualizadas a interés ${'⭐'.repeat(level)}` })
+          clearSelection()
+        },
+        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+      }
+    )
+  }
+
   if (isLoading) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white">
@@ -135,6 +150,22 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
             {COMPANY_STATUS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
+              </option>
+            ))}
+          </select>
+          <select
+            onChange={(e) => {
+              const val = +e.target.value
+              if (!val) { e.target.value = ''; return }
+              e.target.value = ''
+              handleBulkInterest(val)
+            }}
+            className="rounded-lg border border-primary-400 bg-primary-700 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
+          >
+            <option value="">Interés...</option>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n} className="text-slate-900">
+                {'⭐'.repeat(n)}
               </option>
             ))}
           </select>
@@ -180,8 +211,11 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
           <div className="col-span-2">
             <SortHeader label="Sector" field="sector" sort={sort} onSort={onSort} />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1">
             <SortHeader label="Ciudad" field="city" sort={sort} onSort={onSort} />
+          </div>
+          <div className="col-span-1">
+            <SortHeader label="Interés" field="interest_level" sort={sort} onSort={onSort} />
           </div>
           <div className="col-span-1">
             <SortHeader label="Estado" field="status" sort={sort} onSort={onSort} />
@@ -231,8 +265,11 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               <div className="col-span-2 text-sm text-slate-600">
                 {company.sector || '—'}
               </div>
-              <div className="col-span-2 text-sm text-slate-600">
+              <div className="col-span-1 text-sm text-slate-600">
                 {company.city || '—'}
+              </div>
+              <div className="col-span-1 text-sm text-slate-600">
+                {company.interest_level ? '⭐'.repeat(company.interest_level) : '—'}
               </div>
               <div className="col-span-1">
                 <Badge className={status.color}>{status.label}</Badge>
