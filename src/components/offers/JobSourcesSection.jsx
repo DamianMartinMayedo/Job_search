@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Rss, Trash2, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Plus, Rss, Trash2, RefreshCw, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Modal from '../ui/Modal'
@@ -11,6 +11,7 @@ import {
   useRunSources,
 } from '../../hooks/useJobOffers'
 import useAppStore from '../../store/useAppStore'
+import { RECOMMENDED_JOB_SOURCES } from '../../utils/recommendedJobSources'
 
 const SOURCE_TYPES = [
   { value: 'rss', label: 'RSS / Atom' },
@@ -36,6 +37,29 @@ export default function JobSourcesSection() {
         setForm({ name: '', url: '', type: 'rss' })
       },
       onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+    })
+  }
+
+  const handleAddRecommended = async () => {
+    const existingUrls = new Set((sources || []).map((s) => s.url))
+    const toAdd = RECOMMENDED_JOB_SOURCES.filter((r) => !existingUrls.has(r.url))
+    if (toAdd.length === 0) {
+      addToast({ type: 'success', message: 'Todas las fuentes recomendadas ya están añadidas' })
+      return
+    }
+    let added = 0
+    let failed = 0
+    for (const r of toAdd) {
+      try {
+        await createSource.mutateAsync({ name: r.name, url: r.url, type: r.type })
+        added++
+      } catch {
+        failed++
+      }
+    }
+    addToast({
+      type: failed > 0 ? 'error' : 'success',
+      message: `${added} fuentes añadidas${failed > 0 ? `, ${failed} fallidas` : ''}. Pulsa "Ejecutar todas" para traer ofertas.`,
     })
   }
 
@@ -72,7 +96,16 @@ export default function JobSourcesSection() {
           </div>
           <h2 className="text-lg font-semibold text-slate-900">Fuentes de ofertas</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleAddRecommended}
+            disabled={createSource.isPending}
+          >
+            <Sparkles size={14} />
+            Añadir recomendadas
+          </Button>
           <Button
             size="sm"
             variant="secondary"
@@ -90,9 +123,28 @@ export default function JobSourcesSection() {
       </div>
 
       <div className="p-6">
-        <p className="mb-4 text-sm text-slate-500">
-          Cada fuente RSS se consulta cada día a las 08:00 UTC. Puedes ejecutarlas a mano en cualquier momento. Las ofertas se deduplican por URL.
-        </p>
+        <div className="mb-4 space-y-2 text-sm text-slate-500">
+          <p>
+            Las fuentes RSS se consultan automáticamente cada día a las 08:00 UTC. También puedes ejecutarlas a mano cuando quieras. Las ofertas se deduplican por URL.
+          </p>
+          <p>
+            <strong className="text-slate-700">Para tu perfil (UX/UI · España)</strong> hay pocas opciones nacionales con RSS real:
+          </p>
+          <ul className="ml-5 list-disc space-y-1">
+            <li>
+              <strong>Tecnoempleo</strong> — la única gran fuente española con RSS público. Para afinar la URL al feed de tu búsqueda específica entra a su web, busca "UX" o "diseño" y copia la URL del icono RSS de los resultados.
+            </li>
+            <li>
+              Tablones internacionales de remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>…) — están en inglés pero suelen aceptar candidatos desde España.
+            </li>
+            <li>
+              <strong>InfoJobs, LinkedIn e Indeed no exponen RSS</strong> y bloquean scraping. Tendrían que ir por otra vía (alertas Gmail por IMAP) que dejaremos para más adelante.
+            </li>
+          </ul>
+          <p className="pt-1">
+            Pulsa <em>Añadir recomendadas</em> para preconfigurar las fuentes anteriores. Después borra o ajusta las que no te interesen.
+          </p>
+        </div>
 
         {sources && sources.length > 0 ? (
           <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
@@ -144,9 +196,15 @@ export default function JobSourcesSection() {
             ))}
           </div>
         ) : (
-          <p className="py-6 text-center text-sm text-slate-400">
-            No hay fuentes configuradas. Añade una RSS de Tecnoempleo, InfoJobs u otro portal.
-          </p>
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <p className="text-sm text-slate-400">
+              No hay fuentes configuradas todavía.
+            </p>
+            <Button size="sm" onClick={handleAddRecommended} disabled={createSource.isPending}>
+              <Sparkles size={14} />
+              Añadir fuentes recomendadas
+            </Button>
+          </div>
         )}
       </div>
 
