@@ -74,8 +74,13 @@ export default function EmailIngestSection() {
                 Configurado · {status.user}
               </p>
               <p className="mt-0.5 text-xs text-emerald-700">
-                Cron horario: comprueba {status.host}:{status.port} cada hora en punto.
+                Polling: {status.host}:{status.port} · carpeta <code className="rounded bg-emerald-100 px-1">{status.folder}</code> · cada hora en punto.
               </p>
+              {status.folder === 'INBOX' && (
+                <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
+                  ⚠ Estás leyendo el INBOX entero. Si esta cuenta también recibe correos personales, configura un label dedicado y setea <code className="rounded bg-amber-100 px-1">IMAP_FOLDER</code> en Netlify para no marcar como leído tu correo normal. Mira las instrucciones de abajo.
+                </p>
+              )}
             </div>
           </div>
         ) : (
@@ -84,49 +89,97 @@ export default function EmailIngestSection() {
             <div className="flex-1 text-sm">
               <p className="font-medium text-amber-900">No configurado</p>
               <p className="mt-0.5 text-xs text-amber-800">
-                Define las variables de entorno <code className="rounded bg-amber-100 px-1">IMAP_USER</code> y{' '}
-                <code className="rounded bg-amber-100 px-1">IMAP_APP_PASSWORD</code> en Netlify y redeploya.
+                Define las variables de entorno <code className="rounded bg-amber-100 px-1">IMAP_USER</code>,{' '}
+                <code className="rounded bg-amber-100 px-1">IMAP_APP_PASSWORD</code> y{' '}
+                <code className="rounded bg-amber-100 px-1">IMAP_FOLDER</code> en Netlify y redeploya.
               </p>
             </div>
           </div>
         )}
 
         {/* Setup instrucciones */}
-        <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3" open={!configured}>
           <summary className="cursor-pointer text-sm font-medium text-slate-700">
-            ¿Cómo lo configuro? (5 minutos)
+            ¿Cómo lo configuro? (10 minutos · usa tu Gmail actual sin tocar el INBOX)
           </summary>
-          <ol className="mt-3 ml-5 list-decimal space-y-2 text-sm text-slate-600">
-            <li>
-              Crea una cuenta Gmail dedicada (ej. <code>ofertas.tunombre@gmail.com</code>). Mejor que mezclarlas con tu correo principal.
-            </li>
-            <li>
-              Activa la verificación en dos pasos en{' '}
-              <a className="text-primary-600 hover:underline" href="https://myaccount.google.com/security" target="_blank" rel="noreferrer">
-                myaccount.google.com/security
-              </a>.
-            </li>
-            <li>
-              Genera una "Contraseña de aplicación" en{' '}
-              <a className="text-primary-600 hover:underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">
-                myaccount.google.com/apppasswords
-              </a>{' '}
-              (nombre: "Job CRM").
-            </li>
-            <li>
-              En Netlify (Site settings → Environment variables) añade:
-              <ul className="mt-1 ml-5 list-disc text-xs">
-                <li><code className="rounded bg-slate-200 px-1">IMAP_USER</code> = tu cuenta Gmail</li>
-                <li><code className="rounded bg-slate-200 px-1">IMAP_APP_PASSWORD</code> = los 16 caracteres del app password</li>
+          <div className="mt-3 space-y-4 text-sm text-slate-600">
+            <div>
+              <p className="font-semibold text-slate-700">1. Credenciales (si ya tienes SMTP funcionando, salta al paso 2)</p>
+              <ul className="mt-1 ml-5 list-disc space-y-1 text-xs">
+                <li>
+                  <strong>Verificación en 2 pasos:</strong> debe estar activa. Compruébalo en{' '}
+                  <a className="text-primary-600 hover:underline" href="https://myaccount.google.com/security" target="_blank" rel="noreferrer">myaccount.google.com/security</a>.
+                  Si pudiste crear el app password de SMTP, ya está activa.
+                </li>
+                <li>
+                  <strong>App password:</strong> puedes reusar la que ya usas para SMTP. Una app password de Google vale para SMTP e IMAP indistintamente.
+                  Si quieres una nueva: <a className="text-primary-600 hover:underline" href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer">myaccount.google.com/apppasswords</a>.
+                </li>
               </ul>
-            </li>
-            <li>
-              En LinkedIn / InfoJobs / Manfred / Domestika, configura una <strong>alerta de búsqueda</strong> apuntando a esa cuenta Gmail. Te llegará un email por cada batch de ofertas.
-            </li>
-            <li>
-              Redeploya el sitio en Netlify para que las variables surtan efecto y pulsa "Comprobar emails ahora".
-            </li>
-          </ol>
+            </div>
+
+            <div>
+              <p className="font-semibold text-slate-700">2. Crear un label dedicado en Gmail</p>
+              <p className="mt-1 text-xs">
+                Para que el CRM solo lea correos de portales y no marque como leído todo tu Inbox.
+              </p>
+              <ul className="mt-1 ml-5 list-disc space-y-1 text-xs">
+                <li>
+                  En Gmail (web) → sidebar izquierdo → <strong>Más → Crear etiqueta nueva</strong>. Nombre: <code className="rounded bg-slate-200 px-1">Ofertas-CRM</code>.
+                </li>
+                <li>
+                  Asegúrate de que IMAP está activado: <a className="text-primary-600 hover:underline" href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" rel="noreferrer">Configuración → Reenvío y POP/IMAP → Habilitar IMAP</a>.
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="font-semibold text-slate-700">3. Filtros automáticos en Gmail</p>
+              <p className="mt-1 text-xs">
+                Crear un filtro por cada portal para aplicar la etiqueta automáticamente. En Gmail → barra de búsqueda → flecha desplegable → "Crear filtro".
+              </p>
+              <ul className="mt-1 ml-5 list-disc space-y-1 text-xs">
+                <li>
+                  <strong>LinkedIn:</strong> en <em>De</em>: <code className="rounded bg-slate-200 px-1">jobs-noreply@linkedin.com OR jobalerts-noreply@linkedin.com</code>
+                </li>
+                <li>
+                  <strong>InfoJobs:</strong> <code className="rounded bg-slate-200 px-1">@infojobs.net</code>
+                </li>
+                <li>
+                  <strong>Tecnoempleo:</strong> <code className="rounded bg-slate-200 px-1">@tecnoempleo.com</code>
+                </li>
+                <li>
+                  <strong>Manfred:</strong> <code className="rounded bg-slate-200 px-1">@getmanfred.com</code>
+                </li>
+                <li>
+                  <strong>Domestika:</strong> <code className="rounded bg-slate-200 px-1">@domestika.org</code>
+                </li>
+              </ul>
+              <p className="mt-2 text-xs">
+                En cada filtro marca <strong>"Aplicar etiqueta: Ofertas-CRM"</strong>. Opcionalmente <strong>"Saltar Recibidos"</strong> si no quieres verlos también en el Inbox.
+              </p>
+            </div>
+
+            <div>
+              <p className="font-semibold text-slate-700">4. Variables de entorno en Netlify</p>
+              <p className="mt-1 text-xs">Site settings → Environment variables. Añade:</p>
+              <ul className="mt-1 ml-5 list-disc space-y-1 text-xs">
+                <li><code className="rounded bg-slate-200 px-1">IMAP_USER</code> = damianmartinmayedo@gmail.com</li>
+                <li><code className="rounded bg-slate-200 px-1">IMAP_APP_PASSWORD</code> = el mismo app password de SMTP (16 chars)</li>
+                <li><code className="rounded bg-slate-200 px-1">IMAP_FOLDER</code> = <code className="rounded bg-slate-200 px-1">Ofertas-CRM</code></li>
+              </ul>
+              <p className="mt-1 text-xs">
+                Tras añadirlas, dispara un redeploy (Deploys → Trigger deploy).
+              </p>
+            </div>
+
+            <div>
+              <p className="font-semibold text-slate-700">5. Configurar alertas en cada portal</p>
+              <p className="mt-1 text-xs">
+                Ya con todo enchufado: en LinkedIn / InfoJobs / Manfred / Domestika configura una alerta de búsqueda apuntando a tu Gmail. Te llegará un email por cada batch. Pulsa "Comprobar emails ahora" para ver los primeros resultados.
+              </p>
+            </div>
+          </div>
         </details>
 
         {/* Log reciente */}

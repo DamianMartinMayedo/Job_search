@@ -17,7 +17,12 @@ export function getEmailIngestStatus() {
     user: process.env.IMAP_USER || null,
     host: process.env.IMAP_HOST || 'imap.gmail.com',
     port: parseInt(process.env.IMAP_PORT) || 993,
+    folder: process.env.IMAP_FOLDER || 'INBOX',
   }
+}
+
+function defaultFolder() {
+  return process.env.IMAP_FOLDER || 'INBOX'
 }
 
 async function createClient() {
@@ -61,7 +66,7 @@ async function withInbox(folder, fn) {
  *
  * Devuelve: [{ uid, messageId, from, fromName, subject, date, html, text }]
  */
-export async function fetchUnreadMessages({ folder = 'INBOX', limit = 50 } = {}) {
+export async function fetchUnreadMessages({ folder = defaultFolder(), limit = 50 } = {}) {
   return withInbox(folder, async (client) => {
     const uids = await client.search({ seen: false })
     if (!uids || uids.length === 0) return []
@@ -93,7 +98,7 @@ export async function fetchUnreadMessages({ folder = 'INBOX', limit = 50 } = {})
 /**
  * Marca uids como leídos. Reabre conexión para no asumir nada del caller.
  */
-export async function markAsRead(uids, folder = 'INBOX') {
+export async function markAsRead(uids, folder = defaultFolder()) {
   if (!uids || uids.length === 0) return
   return withInbox(folder, async (client) => {
     await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true })
