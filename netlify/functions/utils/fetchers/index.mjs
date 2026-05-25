@@ -62,9 +62,11 @@ async function runSource(source) {
 }
 
 export async function runAllSources({ sourceId } = {}) {
+  console.log(`[fetchers] runAllSources called with sourceId=${sourceId || '(all)'}`)
   const sources = sourceId
     ? await sql`SELECT * FROM job_sources WHERE id = ${sourceId}`
     : await sql`SELECT * FROM job_sources WHERE enabled = true ORDER BY name`
+  console.log(`[fetchers] resolved ${sources.length} source(s) to run`)
 
   const results = []
   for (const source of sources) {

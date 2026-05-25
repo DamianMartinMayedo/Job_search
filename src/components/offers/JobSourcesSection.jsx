@@ -27,6 +27,10 @@ export default function JobSourcesSection() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', url: '', type: 'rss' })
   const [deleteTarget, setDeleteTarget] = useState(null)
+  // Qué fuente está corriendo ahora mismo: id concreto, 'all', o null.
+  // Necesario para que sólo el botón pulsado muestre spinner (runSources.isPending
+  // es global y haría girar TODOS los iconos a la vez).
+  const [runningId, setRunningId] = useState(null)
 
   const handleCreate = () => {
     if (!form.name.trim() || !form.url.trim()) return
@@ -51,7 +55,13 @@ export default function JobSourcesSection() {
     let failed = 0
     for (const r of toAdd) {
       try {
-        await createSource.mutateAsync({ name: r.name, url: r.url, type: r.type })
+        await createSource.mutateAsync({
+          name: r.name,
+          url: r.url,
+          type: r.type,
+          language: r.language,
+          region: r.region,
+        })
         added++
       } catch {
         failed++
@@ -64,7 +74,9 @@ export default function JobSourcesSection() {
   }
 
   const handleRun = (sourceId) => {
+    setRunningId(sourceId || 'all')
     runSources.mutate(sourceId, {
+      onSettled: () => setRunningId(null),
       onSuccess: (data) => {
         if (sourceId) {
           const r = data.sources[0]
@@ -112,7 +124,7 @@ export default function JobSourcesSection() {
             onClick={() => handleRun(null)}
             disabled={runSources.isPending || !sources?.length}
           >
-            <RefreshCw size={14} className={runSources.isPending ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={runningId === 'all' ? 'animate-spin' : ''} />
             Ejecutar todas
           </Button>
           <Button size="sm" onClick={() => setShowForm(true)}>
@@ -147,13 +159,18 @@ export default function JobSourcesSection() {
         </div>
 
         {sources && sources.length > 0 ? (
-          <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-            {sources.map((s) => (
+          (() => {
+            const esSources = sources.filter((s) => s.language === 'es')
+            const intlSources = sources.filter((s) => s.language !== 'es')
+            const renderRow = (s) => (
               <div key={s.id} className="flex items-center justify-between gap-4 p-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-slate-900">{s.name}</p>
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{s.type}</span>
+                    {s.region && (
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">{s.region}</span>
+                    )}
                     {!s.enabled && (
                       <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">deshabilitada</span>
                     )}
@@ -182,7 +199,7 @@ export default function JobSourcesSection() {
                     className="rounded p-1.5 text-slate-400 hover:bg-orange-50 hover:text-orange-600 disabled:opacity-50 cursor-pointer"
                     title="Ejecutar ahora"
                   >
-                    <RefreshCw size={14} className={runSources.isPending ? 'animate-spin' : ''} />
+                    <RefreshCw size={14} className={runningId === s.id ? 'animate-spin' : ''} />
                   </button>
                   <button
                     onClick={() => setDeleteTarget(s)}
@@ -193,8 +210,42 @@ export default function JobSourcesSection() {
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )
+            return (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    🇪🇸 España
+                    <span className="text-slate-400">({esSources.length})</span>
+                  </h3>
+                  {esSources.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-400">
+                      Sin fuentes españolas todavía. Tecnoempleo (RSS) y los portales por email (LinkedIn, InfoJobs, Manfred, Domestika — próximamente) caerán aquí.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                      {esSources.map(renderRow)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    🌍 Internacional
+                    <span className="text-slate-400">({intlSources.length})</span>
+                  </h3>
+                  {intlSources.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-slate-200 px-4 py-3 text-xs text-slate-400">
+                      Sin fuentes internacionales.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+                      {intlSources.map(renderRow)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()
         ) : (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <p className="text-sm text-slate-400">
