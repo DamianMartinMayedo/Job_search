@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard'
 import Companies from './pages/Companies'
 import CompanyDetail from './pages/CompanyDetail'
 import Offers from './pages/Offers'
+import OfferDetail from './pages/OfferDetail'
 import Templates from './pages/Templates'
 import Settings from './pages/Settings'
 
@@ -60,6 +61,7 @@ function AppRoutes() {
         <Route path="contacts" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="messages" element={<Navigate to="/app/dashboard" replace />} />
         <Route path="offers" element={<Offers />} />
+        <Route path="offers/:id" element={<OfferDetail />} />
         <Route path="templates" element={<Templates />} />
         <Route path="settings" element={<Settings />} />
       </Route>

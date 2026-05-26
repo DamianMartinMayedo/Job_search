@@ -15,11 +15,22 @@ export function useJobOffers(filters = {}) {
   })
 }
 
+export function useJobOffer(id) {
+  return useQuery({
+    queryKey: ['job-offer', id],
+    queryFn: () => api.get(`/job-offers/${id}`),
+    enabled: !!id,
+  })
+}
+
 export function useUpdateJobOffer() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, data }) => api.patch(`/job-offers/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['job-offers'] }),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ['job-offers'] })
+      if (vars?.id) qc.invalidateQueries({ queryKey: ['job-offer', vars.id] })
+    },
   })
 }
 

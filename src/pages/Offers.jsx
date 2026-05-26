@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Briefcase, ExternalLink, MapPin, Wifi, Trash2 } from 'lucide-react'
+import { Briefcase, ExternalLink, MapPin, Wifi, Trash2, Send } from 'lucide-react'
 import EmptyState from '../components/ui/EmptyState'
 import ConfirmModal from '../components/ui/ConfirmModal'
 import Pagination from '../components/ui/Pagination'
 import { SkeletonRow } from '../components/ui/Skeleton'
+import ApplyToOfferDialog from '../components/offers/ApplyToOfferDialog'
 import {
   useJobOffers,
   useUpdateJobOffer,
@@ -26,6 +27,9 @@ export default function Offers() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkDelete, setBulkDelete] = useState(false)
+  // Oferta sobre la que se ha pulsado "Aplicar". El diálogo decide si redirige
+  // directo al composer (empresa matcheada) o muestra el form de crear empresa.
+  const [applyTarget, setApplyTarget] = useState(null)
 
   const queryFilters = { ...filters, page, limit }
   const { data, isLoading } = useJobOffers(queryFilters)
@@ -216,14 +220,20 @@ export default function Offers() {
                 <div className="flex flex-1 flex-col gap-3 py-4 pr-6 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
+                      <Link
+                        to={`/app/offers/${o.id}`}
+                        className="text-sm font-semibold text-slate-900 hover:text-primary-600"
+                      >
+                        {o.title}
+                      </Link>
                       <a
                         href={o.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-semibold text-slate-900 hover:text-primary-600"
+                        className="shrink-0 text-slate-400 hover:text-primary-600"
+                        title="Abrir en el portal"
                       >
-                        {o.title}
-                        <ExternalLink size={12} className="ml-1 inline opacity-50" />
+                        <ExternalLink size={12} />
                       </a>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -260,6 +270,14 @@ export default function Offers() {
                     )}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      onClick={() => setApplyTarget(o)}
+                      className="flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-primary-700 cursor-pointer"
+                      title="Crear borrador con plantilla y placeholders rellenos"
+                    >
+                      <Send size={12} />
+                      Aplicar
+                    </button>
                     <select
                       value={o.status}
                       onChange={(e) => handleStatusChange(o, e.target.value)}
@@ -307,6 +325,12 @@ export default function Offers() {
         danger
         isSubmitting={batchOffers.isPending}
         onConfirm={handleBulkDelete}
+      />
+
+      <ApplyToOfferDialog
+        open={!!applyTarget}
+        offer={applyTarget}
+        onClose={() => setApplyTarget(null)}
       />
 
       <ConfirmModal
