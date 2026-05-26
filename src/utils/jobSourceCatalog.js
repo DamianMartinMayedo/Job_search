@@ -74,9 +74,11 @@ const TECNOEMPLEO_KEYWORDS = [
 ]
 
 // Categorías oficiales de WeWorkRemotely (slug usado en /categories/<slug>.rss).
+// Labels en inglés para coincidir con el portal (las ofertas vienen en inglés
+// y así la búsqueda dentro del CRM matchea con los términos del feed).
 const WWR_CATEGORIES = [
-  { value: 'remote-design-jobs', label: 'Diseño' },
-  { value: 'remote-product-jobs', label: 'Producto' },
+  { value: 'remote-design-jobs', label: 'Design' },
+  { value: 'remote-product-jobs', label: 'Product' },
   { value: 'remote-front-end-programming-jobs', label: 'Front-End' },
   { value: 'remote-full-stack-programming-jobs', label: 'Full-Stack' },
   { value: 'remote-back-end-programming-jobs', label: 'Back-End' },
@@ -85,24 +87,24 @@ const WWR_CATEGORIES = [
   { value: 'remote-management-and-finance-jobs', label: 'Management / Finance' },
   { value: 'remote-sales-and-marketing-jobs', label: 'Sales / Marketing' },
   { value: 'remote-customer-support-jobs', label: 'Customer Support' },
-  { value: 'all-other-remote-jobs', label: 'Otros' },
+  { value: 'all-other-remote-jobs', label: 'Other' },
 ]
 
 // Tags abiertas de RemoteOK. El portal genera /remote-<tag>-jobs.rss para cualquier tag.
 const REMOTEOK_TAGS = [
-  { value: 'design', label: 'Design (general)' },
+  { value: 'design', label: 'Design (all)' },
   { value: 'ux', label: 'UX' },
   { value: 'ui', label: 'UI' },
   { value: 'product-design', label: 'Product Design' },
   { value: 'frontend', label: 'Frontend' },
-  { value: 'dev', label: 'Dev (general)' },
+  { value: 'dev', label: 'Dev (all)' },
   { value: 'marketing', label: 'Marketing' },
   { value: 'product', label: 'Product' },
 ]
 
 // Categorías oficiales de Remotive (slug usado en /remote-jobs/feed/<slug>).
 const REMOTIVE_CATEGORIES = [
-  { value: 'design', label: 'Diseño' },
+  { value: 'design', label: 'Design' },
   { value: 'product', label: 'Product Management' },
   { value: 'software-development', label: 'Software Development' },
   { value: 'marketing', label: 'Marketing' },
