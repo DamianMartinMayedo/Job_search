@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { FileText, Plus, Pencil, Trash2, Eye } from 'lucide-react'
+import { useState, useRef, useMemo } from 'react'
+import { FileText, Plus, Pencil, Trash2, Eye, Copy, Search, AlertTriangle } from 'lucide-react'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Input from '../components/ui/Input'
@@ -15,12 +15,43 @@ import {
 import { useSettings } from '../hooks/useSettings'
 import useAppStore from '../store/useAppStore'
 
+// Lista canónica de placeholders soportados. Cualquier {{x}} fuera de aquí
+// dispara un warning al guardar, pero no impide guardar (puede ser legítimo
+// si el usuario añade su propia variable en el composer al enviar).
+const SUPPORTED_PLACEHOLDERS = [
+  'company_name',
+  'contact_name',
+  'contact_role',
+  'my_name',
+  'my_role',
+  'my_web',
+  'my_email',
+  'job_title',
+  'job_url',
+  'job_location',
+]
+
+// Detecta {{...}} bien formados, {{ huérfanos sin cierre, y }} sin apertura.
+// Devuelve { unknown: [...], unclosed: bool, unopened: bool }.
+function lintPlaceholders(text) {
+  if (!text) return { unknown: [], unclosed: false, unopened: false }
+  const used = new Set()
+  const matches = text.matchAll(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g)
+  for (const m of matches) used.add(m[1])
+  const stripped = text.replace(/\{\{\s*[a-zA-Z_][a-zA-Z0-9_]*\s*\}\}/g, '')
+  const unclosed = stripped.includes('{{')
+  const unopened = stripped.includes('}}')
+  const unknown = [...used].filter((p) => !SUPPORTED_PLACEHOLDERS.includes(p))
+  return { unknown, unclosed, unopened }
+}
+
 export default function Templates() {
   const [formOpen, setFormOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [editing, setEditing] = useState(null)
   const [previewTemplate, setPreviewTemplate] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [search, setSearch] = useState('')
 
   const { data: templates, isLoading } = useTemplates()
   const { data: settings } = useSettings()
@@ -28,6 +59,28 @@ export default function Templates() {
   const updateTemplate = useUpdateTemplate()
   const deleteTemplate = useDeleteTemplate()
   const addToast = useAppStore((s) => s.addToast)
+
+  const filteredTemplates = useMemo(() => {
+    if (!templates) return []
+    const q = search.trim().toLowerCase()
+    if (!q) return templates
+    return templates.filter((t) =>
+      [t.name, t.subject, t.body].some((v) => (v || '').toLowerCase().includes(q))
+    )
+  }, [templates, search])
+
+  const handleDuplicate = async (t) => {
+    try {
+      await createTemplate.mutateAsync({
+        name: `${t.name} (copia)`,
+        subject: t.subject,
+        body: t.body,
+      })
+      addToast({ type: 'success', message: `Plantilla "${t.name}" duplicada` })
+    } catch (err) {
+      addToast({ type: 'error', message: err.message || 'Error al duplicar' })
+    }
+  }
 
   const handleSave = async (data) => {
     try {
@@ -65,6 +118,9 @@ export default function Templates() {
       my_role: settings.my_role || 'Tu rol',
       my_web: settings.my_web || 'tuweb.com',
       my_email: settings.my_email || 'tu@email.com',
+      job_title: 'Senior UX Designer',
+      job_url: 'https://...',
+      job_location: ' (Remoto, Madrid)',
     }
     let result = template.body
     Object.entries(vars).forEach(([key, val]) => {
@@ -86,60 +142,88 @@ export default function Templates() {
         </div>
       ) : hasTemplates ? (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Plantillas</h1>
               <p className="mt-1 text-sm text-slate-500">
-                {templates.length} plantillas
+                {filteredTemplates.length} de {templates.length} plantillas
+                {search && ` · "${search}"`}
               </p>
             </div>
-            <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
-              <Plus size={18} />
-              Nueva plantilla
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar nombre, asunto o cuerpo..."
+                  className="w-64 rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+                />
+              </div>
+              <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
+                <Plus size={18} />
+                Nueva plantilla
+              </Button>
+            </div>
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.map((t) => (
-              <div
-                key={t.id}
-                className="rounded-xl border border-slate-200 bg-white p-5"
-              >
-                <h3 className="text-base font-semibold text-slate-900">
-                  {t.name}
-                </h3>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                  {t.subject}
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handlePreview(t)}
-                  >
-                    <Eye size={16} />
-                    Vista previa
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setEditing(t); setFormOpen(true) }}
-                  >
-                    <Pencil size={16} />
-                    Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(t)}
-                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
+          {filteredTemplates.length === 0 ? (
+            <p className="mt-8 text-center text-sm text-slate-400">
+              No hay plantillas que coincidan con "{search}".
+            </p>
+          ) : (
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredTemplates.map((t) => (
+                <div
+                  key={t.id}
+                  className="rounded-xl border border-slate-200 bg-white p-5"
+                >
+                  <h3 className="text-base font-semibold text-slate-900">
+                    {t.name}
+                  </h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                    {t.subject}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handlePreview(t)}
+                    >
+                      <Eye size={16} />
+                      Preview
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setEditing(t); setFormOpen(true) }}
+                    >
+                      <Pencil size={16} />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDuplicate(t)}
+                      disabled={createTemplate.isPending}
+                    >
+                      <Copy size={16} />
+                      Duplicar
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(t)}
+                      className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       ) : (
         <EmptyState
@@ -250,6 +334,9 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
     })
   }
 
+  const lint = lintPlaceholders(`${form.subject}\n${form.body}`)
+  const hasWarnings = lint.unknown.length > 0 || lint.unclosed || lint.unopened
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!form.name.trim() || !form.subject.trim() || !form.body.trim()) return
@@ -257,13 +344,19 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
   }
 
   const placeholders = [
+    // De empresa / contacto
     '{{company_name}}',
     '{{contact_name}}',
     '{{contact_role}}',
+    // Tuyas (settings)
     '{{my_name}}',
     '{{my_role}}',
     '{{my_web}}',
     '{{my_email}}',
+    // De oferta concreta (se rellenan al escribir desde una oferta)
+    '{{job_title}}',
+    '{{job_url}}',
+    '{{job_location}}',
   ]
 
   return (
@@ -303,8 +396,8 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
             {placeholders.map((p) => (
               <button
                 key={p}
-                  type="button"
-                    onClick={() => insertPlaceholder(p)}
+                type="button"
+                onClick={() => insertPlaceholder(p)}
                 className="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600 hover:bg-slate-200 cursor-pointer"
               >
                 {p}
@@ -312,6 +405,24 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
             ))}
           </div>
         </div>
+        {hasWarnings && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <div className="space-y-0.5">
+              {lint.unclosed && <p>Hay <code>{`{{`}</code> sin cerrar.</p>}
+              {lint.unopened && <p>Hay <code>{`}}`}</code> sin un <code>{`{{`}</code> previo.</p>}
+              {lint.unknown.length > 0 && (
+                <p>
+                  Placeholders desconocidos:{' '}
+                  {lint.unknown.map((u) => (
+                    <code key={u} className="rounded bg-amber-100 px-1 mr-1">{`{{${u}}}`}</code>
+                  ))}
+                  . Se enviarán literales si no los rellenas en el composer.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancelar
