@@ -317,7 +317,7 @@ export default function CompanyDetail() {
                 <span className="text-sm text-slate-500">Rol: </span>
                 <span className="text-sm text-slate-600 max-w-md truncate">{company.my_role}</span>
                 <button
-                  onClick={() => setMyRoleModal({ open: true, value: company.my_role })}
+                  onClick={() => setEditField({ kind: 'myRole', value: company.my_role || '' })}
                   className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                   title="Editar rol"
                 >
@@ -326,7 +326,7 @@ export default function CompanyDetail() {
               </div>
             ) : (
               <button
-                onClick={() => setMyRoleModal({ open: true, value: '' })}
+                onClick={() => setEditField({ kind: 'myRole', value: '' })}
                 className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
               >
                 <Plus size={14} />
@@ -340,7 +340,7 @@ export default function CompanyDetail() {
                 <span className="text-sm text-slate-500">Interés: </span>
                 <span className="text-sm font-medium text-slate-700">{company.interest_level}/5</span>
                 <button
-                  onClick={() => setInterestModal({ open: true, value: String(company.interest_level) })}
+                  onClick={() => setEditField({ kind: 'interest', value: String(company.interest_level) })}
                   className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                   title="Editar interés"
                 >
@@ -349,7 +349,7 @@ export default function CompanyDetail() {
               </div>
             ) : (
               <button
-                onClick={() => setInterestModal({ open: true, value: '' })}
+                onClick={() => setEditField({ kind: 'interest', value: '' })}
                 className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
               >
                 <Plus size={14} />
@@ -494,151 +494,47 @@ export default function CompanyDetail() {
         />
       )}
 
-      <PromptModal
-        open={emailModal.open}
-        onClose={() => setEmailModal({ open: false, value: '' })}
-        title={company?.email ? 'Editar email' : 'Añadir email'}
-        label="Email de la empresa"
-        placeholder="info@empresa.com"
-        initialValue={emailModal.value}
-        isSubmitting={updateCompany.isPending}
-        onSubmit={(email) => {
-          updateCompany.mutate(
-            { id, data: { email } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: company?.email ? 'Email actualizado' : 'Email añadido' })
-                setEmailModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
-
-      <PromptModal
-        open={jobPortalModal.open}
-        onClose={() => setJobPortalModal({ open: false, value: '' })}
-        title={company?.job_portal_url ? 'Editar portal de empleo' : 'Añadir portal de empleo'}
-        label="URL del portal de empleo"
-        placeholder="https://.../jobs"
-        initialValue={jobPortalModal.value}
-        isSubmitting={updateCompany.isPending}
-        onSubmit={(jobPortalUrl) => {
-          updateCompany.mutate(
-            { id, data: { job_portal_url: jobPortalUrl } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: company?.job_portal_url ? 'Portal de empleo actualizado' : 'Portal de empleo añadido' })
-                setJobPortalModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
-
-      <PromptModal
-        open={websiteModal.open}
-        onClose={() => setWebsiteModal({ open: false, value: '' })}
-        title="Editar sitio web"
-        label="URL del sitio web"
-        placeholder="https://..."
-        initialValue={websiteModal.value}
-        isSubmitting={updateCompany.isPending}
-        onSubmit={(website) => {
-          updateCompany.mutate(
-            { id, data: { website } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: 'Web actualizada' })
-                setWebsiteModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
-
-      <PromptModal
-        open={myRoleModal.open}
-        onClose={() => setMyRoleModal({ open: false, value: '' })}
-        title={company?.my_role ? 'Editar rol para plantillas' : 'Añadir rol para plantillas'}
-        label="Rol en esta empresa"
-        placeholder="diseñador UI/UX y diseño digital end‑to‑end"
-        initialValue={myRoleModal.value}
-        isSubmitting={updateCompany.isPending}
-        onSubmit={(myRole) => {
-          updateCompany.mutate(
-            { id, data: { my_role: myRole } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: company?.my_role ? 'Rol actualizado' : 'Rol añadido' })
-                setMyRoleModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
-
-      <PromptModal
-        open={nameModal.open}
-        onClose={() => setNameModal({ open: false, value: '' })}
-        title="Editar nombre de la empresa"
-        label="Nombre"
-        placeholder="Nombre de la empresa"
-        initialValue={nameModal.value}
-        isSubmitting={updateCompany.isPending}
-        onSubmit={(name) => {
-          updateCompany.mutate(
-            { id, data: { name } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: 'Nombre actualizado' })
-                setNameModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
-
-      <PromptModal
-        open={interestModal.open}
-        onClose={() => setInterestModal({ open: false, value: '' })}
-        title={company?.interest_level ? 'Editar interés' : 'Añadir interés'}
-        label="Nivel de interés (1-5)"
-        placeholder="3"
-        initialValue={interestModal.value}
-        isSubmitting={updateCompany.isPending}
-        type="number"
-        min="1"
-        max="5"
-        onSubmit={(val) => {
-          const level = parseInt(val)
-          if (isNaN(level) || level < 1 || level > 5) {
-            addToast({ type: 'error', message: 'El interés debe ser un número del 1 al 5' })
-            return
-          }
-          updateCompany.mutate(
-            { id, data: { interest_level: level } },
-            {
-              onSuccess: () => {
-                addToast({ type: 'success', message: company?.interest_level ? 'Interés actualizado' : 'Interés añadido' })
-                setInterestModal({ open: false, value: '' })
-              },
-              onError: (err) =>
-                addToast({ type: 'error', message: `Error: ${err.message}` }),
-            }
-          )
-        }}
-      />
+      {/* Un único PromptModal compartido por todos los campos editables del header.
+          editField === { kind, value } se mapea a la config de EDIT_FIELDS. */}
+      {editField && (() => {
+        const conf = EDIT_FIELDS[editField.kind]
+        if (!conf) return null
+        return (
+          <PromptModal
+            open
+            onClose={() => setEditField(null)}
+            title={conf.title}
+            label={conf.label}
+            placeholder={conf.placeholder}
+            initialValue={editField.value}
+            isSubmitting={updateCompany.isPending}
+            type={conf.type}
+            min={conf.min}
+            max={conf.max}
+            onSubmit={(raw) => {
+              let value = raw
+              if (conf.transform) {
+                value = conf.transform(raw)
+                if (conf.field === 'interest_level' && (isNaN(value) || value < 1 || value > 5)) {
+                  addToast({ type: 'error', message: 'El interés debe ser un número del 1 al 5' })
+                  return
+                }
+              }
+              updateCompany.mutate(
+                { id, data: { [conf.field]: value } },
+                {
+                  onSuccess: () => {
+                    addToast({ type: 'success', message: `${conf.label} guardado` })
+                    setEditField(null)
+                  },
+                  onError: (err) =>
+                    addToast({ type: 'error', message: `Error: ${err.message}` }),
+                }
+              )
+            }}
+          />
+        )
+      })()}
 
       <ConfirmModal
         open={!!archiveTarget}
