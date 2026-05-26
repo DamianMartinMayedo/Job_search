@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Plus, Rss, Trash2, RefreshCw, AlertCircle, CheckCircle2, Sparkles, Pencil } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Plus, Rss, Trash2, RefreshCw, AlertCircle, CheckCircle2, Pencil } from 'lucide-react'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Modal from '../ui/Modal'
@@ -12,13 +12,10 @@ import {
   useRunSources,
 } from '../../hooks/useJobOffers'
 import useAppStore from '../../store/useAppStore'
-import { RECOMMENDED_JOB_SOURCES } from '../../utils/recommendedJobSources'
+import { JOB_PORTAL_CATALOG, getPortalById } from '../../utils/jobSourceCatalog'
 
-const SOURCE_TYPES = [
-  { value: 'rss', label: 'RSS / Atom' },
-]
-
-const BLANK_FORM = { name: '', url: '', type: 'rss', language: 'es', region: '' }
+// Defaults usados solo para el flujo "Editar fuente existente" (formulario libre).
+const BLANK_EDIT = { name: '', url: '', type: 'rss', language: 'es', region: '' }
 
 export default function JobSourcesSection() {
   const { data: sources } = useJobSources()
@@ -28,89 +25,110 @@ export default function JobSourcesSection() {
   const runSources = useRunSources()
   const addToast = useAppStore((s) => s.addToast)
 
-  const [showForm, setShowForm] = useState(false)
+  // Modal nueva fuente: wizard guiado por catálogo. `wizardPortalId` define qué
+  // portal está activo y `wizardValues` los campos seleccionados.
+  const [showWizard, setShowWizard] = useState(false)
+  const [wizardPortalId, setWizardPortalId] = useState(JOB_PORTAL_CATALOG[0].id)
+  const [wizardValues, setWizardValues] = useState({})
+
+  // Modal editar fuente: formulario libre para fuentes existentes (que pueden
+  // venir de cualquier configuración antigua).
   const [editingId, setEditingId] = useState(null)
-  const [form, setForm] = useState(BLANK_FORM)
+  const [editForm, setEditForm] = useState(BLANK_EDIT)
+
   const [deleteTarget, setDeleteTarget] = useState(null)
   // Qué se está ejecutando ahora: id concreto, 'es', 'intl', o null.
   // Solo gira el spinner del botón pulsado (runSources.isPending es global).
   const [runningId, setRunningId] = useState(null)
 
-  const openNewForm = () => {
-    setEditingId(null)
-    setForm(BLANK_FORM)
-    setShowForm(true)
+  const wizardPortal = getPortalById(wizardPortalId)
+  // Aplica defaults a wizardValues para los fields sin valor explícito.
+  const wizardEffectiveValues = useMemo(() => {
+    if (!wizardPortal) return {}
+    const out = { ...wizardValues }
+    for (const f of wizardPortal.fields) {
+      if (out[f.key] === undefined && f.default !== undefined) out[f.key] = f.default
+    }
+    return out
+  }, [wizardPortal, wizardValues])
+  const wizardBuilt = wizardPortal?.build(wizardEffectiveValues)
+
+  const openWizard = () => {
+    setWizardPortalId(JOB_PORTAL_CATALOG[0].id)
+    setWizardValues({})
+    setShowWizard(true)
+  }
+
+  const closeWizard = () => {
+    setShowWizard(false)
+    setWizardValues({})
+  }
+
+  const handleWizardSubmit = () => {
+    if (!wizardBuilt?.url) {
+      addToast({ type: 'error', message: 'Completa la URL' })
+      return
+    }
+    const existingUrls = new Set((sources || []).map((s) => s.url))
+    if (existingUrls.has(wizardBuilt.url)) {
+      addToast({ type: 'error', message: 'Ya tienes una fuente con esa URL' })
+      return
+    }
+    createSource.mutate(
+      {
+        name: wizardBuilt.name,
+        url: wizardBuilt.url,
+        type: wizardBuilt.type || 'rss',
+        language: wizardBuilt.language || null,
+        region: wizardBuilt.region || null,
+      },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `Fuente "${wizardBuilt.name}" creada` })
+          closeWizard()
+        },
+        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+      }
+    )
   }
 
   const openEditForm = (s) => {
     setEditingId(s.id)
-    setForm({
+    setEditForm({
       name: s.name || '',
       url: s.url || '',
       type: s.type || 'rss',
       language: s.language || '',
       region: s.region || '',
     })
-    setShowForm(true)
   }
 
-  const closeForm = () => {
-    setShowForm(false)
+  const closeEditForm = () => {
     setEditingId(null)
-    setForm(BLANK_FORM)
+    setEditForm(BLANK_EDIT)
   }
 
-  const handleSubmitForm = () => {
-    if (!form.name.trim() || !form.url.trim()) return
-    const payload = {
-      name: form.name.trim(),
-      url: form.url.trim(),
-      type: form.type,
-      language: form.language || null,
-      region: form.region.trim() || null,
-    }
-    const mutation = editingId
-      ? updateSource.mutateAsync({ id: editingId, data: payload })
-      : createSource.mutateAsync(payload)
-
-    mutation
-      .then(() => {
-        addToast({
-          type: 'success',
-          message: editingId ? `Fuente "${form.name}" actualizada` : `Fuente "${form.name}" creada`,
-        })
-        closeForm()
-      })
-      .catch((err) => addToast({ type: 'error', message: `Error: ${err.message}` }))
-  }
-
-  const handleAddRecommended = async () => {
-    const existingUrls = new Set((sources || []).map((s) => s.url))
-    const toAdd = RECOMMENDED_JOB_SOURCES.filter((r) => !existingUrls.has(r.url))
-    if (toAdd.length === 0) {
-      addToast({ type: 'success', message: 'Todas las fuentes recomendadas ya están añadidas' })
-      return
-    }
-    let added = 0
-    let failed = 0
-    for (const r of toAdd) {
-      try {
-        await createSource.mutateAsync({
-          name: r.name,
-          url: r.url,
-          type: r.type,
-          language: r.language,
-          region: r.region,
-        })
-        added++
-      } catch {
-        failed++
+  const handleEditSubmit = () => {
+    if (!editForm.name.trim() || !editForm.url.trim()) return
+    updateSource.mutate(
+      {
+        id: editingId,
+        data: {
+          name: editForm.name.trim(),
+          url: editForm.url.trim(),
+          type: editForm.type,
+          language: editForm.language || null,
+          region: editForm.region.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          addToast({ type: 'success', message: `Fuente "${editForm.name}" actualizada` })
+          closeEditForm()
+        },
+        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
       }
-    }
-    addToast({
-      type: failed > 0 ? 'error' : 'success',
-      message: `${added} fuentes añadidas${failed > 0 ? `, ${failed} fallidas` : ''}. Pulsa "Ejecutar España" o "Ejecutar internacional" para traer ofertas.`,
-    })
+    )
   }
 
   // arg: string (UUID), 'es', 'intl', o undefined (todas — sin uso público hoy).
@@ -164,16 +182,7 @@ export default function JobSourcesSection() {
           <h2 className="text-lg font-semibold text-slate-900">Fuentes de ofertas</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleAddRecommended}
-            disabled={createSource.isPending}
-          >
-            <Sparkles size={14} />
-            Añadir recomendadas
-          </Button>
-          <Button size="sm" onClick={openNewForm}>
+          <Button size="sm" onClick={openWizard}>
             <Plus size={16} />
             Nueva fuente
           </Button>
@@ -181,29 +190,6 @@ export default function JobSourcesSection() {
       </div>
 
       <div className="p-6">
-        <div className="mb-4 space-y-2 text-sm text-slate-500">
-          <p>
-            Las fuentes RSS se consultan automáticamente cada día a las 08:00 UTC. También puedes ejecutarlas a mano. Las ofertas se deduplican por URL.
-          </p>
-          <p>
-            <strong className="text-slate-700">Cobertura para tu perfil (UX/UI · España):</strong>
-          </p>
-          <ul className="ml-5 list-disc space-y-1">
-            <li>
-              <strong>Tecnoempleo</strong> sí publica RSS por provincia. Las recomendadas incluyen Sevilla, Madrid y un feed general de toda España. Para otra provincia copia la URL del icono RSS desde su web tras hacer una búsqueda.
-            </li>
-            <li>
-              Tablones internacionales de empleo remoto (<strong>WeWorkRemotely</strong>, <strong>RemoteOK</strong>, <strong>Remotive</strong>). En inglés pero muchas ofertas son worldwide y aceptan España.
-            </li>
-            <li>
-              <strong>InfoJobs</strong>, <strong>LinkedIn</strong>, <strong>Manfred</strong> y <strong>Domestika</strong> no exponen RSS. Para esos usa el panel de <em>Ingesta por email</em> más abajo (alertas → Gmail → polling IMAP).
-            </li>
-          </ul>
-          <p className="pt-1">
-            Pulsa <em>Añadir recomendadas</em> para preconfigurar las 7 fuentes verificadas. Después borra o ajusta las que no te interesen.
-          </p>
-        </div>
-
         {sources && sources.length > 0 ? (
           (() => {
             const esSources = sources.filter((s) => s.language === 'es')
@@ -307,7 +293,7 @@ export default function JobSourcesSection() {
                   '🌍',
                   intlSources,
                   'intl',
-                  'Sin fuentes internacionales. Si las quieres, pulsa "Añadir recomendadas".'
+                  'Sin fuentes internacionales.'
                 )}
               </div>
             )
@@ -317,53 +303,145 @@ export default function JobSourcesSection() {
             <p className="text-sm text-slate-400">
               No hay fuentes configuradas todavía.
             </p>
-            <Button size="sm" onClick={handleAddRecommended} disabled={createSource.isPending}>
-              <Sparkles size={14} />
-              Añadir fuentes recomendadas
+            <Button size="sm" onClick={openWizard}>
+              <Plus size={14} />
+              Añadir primera fuente
             </Button>
           </div>
         )}
       </div>
 
-      <Modal
-        open={showForm}
-        onClose={closeForm}
-        title={editingId ? 'Editar fuente de ofertas' : 'Nueva fuente de ofertas'}
-      >
+      {/* Wizard: nueva fuente desde catálogo. Selección de portal + campos
+          contextuales (provincia, keyword) + preview de URL en vivo. */}
+      <Modal open={showWizard} onClose={closeWizard} title="Nueva fuente de ofertas">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Portal</label>
+            <select
+              value={wizardPortalId}
+              onChange={(e) => {
+                setWizardPortalId(e.target.value)
+                setWizardValues({})
+              }}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            >
+              {JOB_PORTAL_CATALOG.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
+            {wizardPortal?.description && (
+              <p className="mt-1 text-xs text-slate-500">{wizardPortal.description}</p>
+            )}
+          </div>
+
+          {wizardPortal?.fields.map((f) => {
+            const value = wizardEffectiveValues[f.key] ?? ''
+            if (f.type === 'select') {
+              return (
+                <div key={f.key}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <select
+                    value={value}
+                    onChange={(e) => setWizardValues((v) => ({ ...v, [f.key]: e.target.value }))}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+                  >
+                    {f.options.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )
+            }
+            if (f.type === 'select-or-custom') {
+              const isCustom = value && !f.options.some((o) => o.value === value)
+              return (
+                <div key={f.key}>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">{f.label}</label>
+                  <div className="flex gap-2">
+                    <select
+                      value={isCustom ? '__custom__' : value}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        if (v === '__custom__') {
+                          setWizardValues((vs) => ({ ...vs, [f.key]: vs[f.key] || 'custom' }))
+                        } else {
+                          setWizardValues((vs) => ({ ...vs, [f.key]: v }))
+                        }
+                      }}
+                      className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+                    >
+                      {f.options.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                      <option value="__custom__">Otra keyword…</option>
+                    </select>
+                    {isCustom && (
+                      <Input
+                        value={value}
+                        onChange={(e) => setWizardValues((vs) => ({ ...vs, [f.key]: e.target.value }))}
+                        placeholder="ej: figma"
+                        className="flex-1"
+                      />
+                    )}
+                  </div>
+                </div>
+              )
+            }
+            // text
+            return (
+              <Input
+                key={f.key}
+                label={f.label}
+                value={value}
+                placeholder={f.placeholder}
+                onChange={(e) => setWizardValues((vs) => ({ ...vs, [f.key]: e.target.value }))}
+              />
+            )
+          })}
+
+          {/* Preview en vivo de lo que se va a guardar */}
+          {wizardBuilt && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
+              <p className="font-semibold text-slate-700">{wizardBuilt.name || '(sin nombre)'}</p>
+              <p className="mt-1 truncate text-slate-500">{wizardBuilt.url || '(URL incompleta)'}</p>
+              <p className="mt-1 text-slate-400">
+                {wizardBuilt.language === 'es' ? '🇪🇸 España' : wizardBuilt.language === 'en' ? '🌍 Internacional' : 'Sin grupo'}
+                {wizardBuilt.region ? ` · ${wizardBuilt.region}` : ''}
+              </p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={closeWizard}>Cancelar</Button>
+            <Button
+              onClick={handleWizardSubmit}
+              disabled={createSource.isPending || !wizardBuilt?.url || !wizardBuilt?.name}
+            >
+              {createSource.isPending ? 'Creando...' : 'Crear fuente'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Editor libre: para fuentes ya existentes que pueden no encajar en el catálogo. */}
+      <Modal open={!!editingId} onClose={closeEditForm} title="Editar fuente de ofertas">
         <div className="space-y-4">
           <Input
             label="Nombre"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Ej: Tecnoempleo · Sevilla diseño"
+            value={editForm.name}
+            onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
           />
           <Input
             label="URL del feed"
-            value={form.url}
-            onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-            placeholder="https://..."
+            value={editForm.url}
+            onChange={(e) => setEditForm((f) => ({ ...f, url: e.target.value }))}
           />
-          <p className="-mt-2 text-xs text-slate-500">
-            Para Tecnoempleo puedes combinar provincia y keyword: <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">?pr=274&amp;te=diseño</code> (Sevilla + diseño).
-          </p>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Tipo</label>
-              <select
-                value={form.type}
-                onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
-              >
-                {SOURCE_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">Grupo</label>
               <select
-                value={form.language}
-                onChange={(e) => setForm((f) => ({ ...f, language: e.target.value }))}
+                value={editForm.language}
+                onChange={(e) => setEditForm((f) => ({ ...f, language: e.target.value }))}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
               >
                 <option value="es">🇪🇸 España</option>
@@ -371,26 +449,19 @@ export default function JobSourcesSection() {
                 <option value="">Sin clasificar</option>
               </select>
             </div>
+            <Input
+              label="Región (opcional)"
+              value={editForm.region}
+              onChange={(e) => setEditForm((f) => ({ ...f, region: e.target.value }))}
+            />
           </div>
-          <Input
-            label="Región o etiqueta (opcional)"
-            value={form.region}
-            onChange={(e) => setForm((f) => ({ ...f, region: e.target.value }))}
-            placeholder="Ej: Sevilla, Madrid, Remoto, España…"
-          />
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={closeForm}>Cancelar</Button>
+            <Button variant="secondary" onClick={closeEditForm}>Cancelar</Button>
             <Button
-              onClick={handleSubmitForm}
-              disabled={
-                (editingId ? updateSource.isPending : createSource.isPending) ||
-                !form.name.trim() ||
-                !form.url.trim()
-              }
+              onClick={handleEditSubmit}
+              disabled={updateSource.isPending || !editForm.name.trim() || !editForm.url.trim()}
             >
-              {(editingId ? updateSource.isPending : createSource.isPending)
-                ? (editingId ? 'Guardando...' : 'Creando...')
-                : (editingId ? 'Guardar cambios' : 'Crear')}
+              {updateSource.isPending ? 'Guardando...' : 'Guardar cambios'}
             </Button>
           </div>
         </div>

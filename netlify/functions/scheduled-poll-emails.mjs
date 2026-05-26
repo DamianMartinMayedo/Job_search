@@ -31,5 +31,9 @@ export default async function handler() {
 }
 
 export const config = {
-  schedule: '0 * * * *', // cada hora en punto
+  // Dos veces al día a las 7:00 y 16:00 UTC. En España:
+  //   - Verano (CEST, UTC+2): 9:00 y 18:00
+  //   - Invierno (CET, UTC+1): 8:00 y 17:00
+  // Netlify cron es siempre UTC y no aplica DST.
+  schedule: '0 7,16 * * *',
 }

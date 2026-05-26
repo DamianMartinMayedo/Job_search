@@ -74,7 +74,7 @@ export default function EmailIngestSection() {
                 Configurado · {status.user}
               </p>
               <p className="mt-0.5 text-xs text-emerald-700">
-                Polling: {status.host}:{status.port} · carpeta <code className="rounded bg-emerald-100 px-1">{status.folder}</code> · cada hora en punto.
+                Polling: {status.host}:{status.port} · carpeta <code className="rounded bg-emerald-100 px-1">{status.folder}</code> · 2 veces al día (≈9:00 y 18:00 hora España).
               </p>
               {status.folder === 'INBOX' && (
                 <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">

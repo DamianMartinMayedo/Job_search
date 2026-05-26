@@ -27,6 +27,14 @@ export const name = 'linkedin'
 
 const JOB_URL_RE = /https?:\/\/(?:www\.)?linkedin\.com\/comm\/jobs\/view\/(\d+)[^"'\s<>]*/gi
 
+// Texto de CTAs típicos que NO son títulos. Se filtran al elegir candidato.
+const CTA_BLACKLIST = new Set([
+  'apply', 'aplica', 'aplicar', 'postular', 'ver oferta', 'ver', 'view job', 'view',
+  'show more', 'leer más', 'leer mas', 'ver más', 'ver mas',
+  'easy apply', 'apply now', 'apply easily',
+  'see more', 'show', 'jobs', 'empleos',
+])
+
 function stripTags(html) {
   return html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim()
 }
@@ -43,61 +51,98 @@ function decodeEntities(s) {
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)))
 }
 
-function findEnclosingAnchor(html, urlMatchIndex) {
-  // Busca el <a ...> que abre antes del índice y el </a> que cierra después.
-  // Devuelve { open, close } o null.
-  const openStart = html.lastIndexOf('<a ', urlMatchIndex)
-  if (openStart < 0) return null
-  const openEnd = html.indexOf('>', openStart)
-  if (openEnd < 0 || openEnd > urlMatchIndex) return null
-  const closeStart = html.indexOf('</a>', urlMatchIndex)
-  if (closeStart < 0) return null
-  return {
-    inner: html.slice(openEnd + 1, closeStart),
-    end: closeStart + 4,
+function isLikelyTitle(text) {
+  if (!text) return false
+  const lower = text.toLowerCase().trim()
+  if (CTA_BLACKLIST.has(lower)) return false
+  if (lower.length < 8 || lower.length > 160) return false
+  // Si es solo "1234" o URL pelada, fuera.
+  if (/^https?:\/\//.test(lower)) return false
+  if (/^\d+$/.test(lower)) return false
+  return true
+}
+
+// Devuelve TODOS los anchors del HTML que apuntan al JOB_ID dado. Cada uno
+// con su texto interno limpio.
+function findAllAnchorsForJob(html, jobId) {
+  const anchors = []
+  // <a ... href="...comm/jobs/view/JOB_ID..." ...> CONTENT </a>
+  const re = new RegExp(
+    `<a\\b[^>]*href=["'][^"']*comm\\/jobs\\/view\\/${jobId}[^"']*["'][^>]*>([\\s\\S]*?)<\\/a>`,
+    'gi'
+  )
+  let m
+  while ((m = re.exec(html)) !== null) {
+    const inner = m[1]
+    const text = decodeEntities(stripTags(inner))
+    if (text) anchors.push({ text, index: m.index })
   }
+  return anchors
+}
+
+// Como último fallback: busca un <h1>/<h2>/<h3> en los 800 chars anteriores
+// a la primera URL del JOB_ID. En emails de LinkedIn el título suele ser un
+// heading justo encima de los CTAs.
+function findHeadingBefore(html, anchorIndex) {
+  const start = Math.max(0, anchorIndex - 800)
+  const window = html.slice(start, anchorIndex)
+  const re = /<h[1-4]\b[^>]*>([\s\S]*?)<\/h[1-4]>/gi
+  let last = null
+  let m
+  while ((m = re.exec(window)) !== null) {
+    last = m[1]
+  }
+  if (!last) return null
+  const text = decodeEntities(stripTags(last))
+  return isLikelyTitle(text) ? text : null
+}
+
+function pickTitle(html, jobId) {
+  const anchors = findAllAnchorsForJob(html, jobId)
+  // Candidatos: textos de los anchors que pasan el filtro de título.
+  const candidates = anchors
+    .map((a) => a.text)
+    .filter(isLikelyTitle)
+  if (candidates.length > 0) {
+    // El título suele ser el anchor más largo, no el del CTA.
+    return candidates.sort((a, b) => b.length - a.length)[0]
+  }
+  // Fallback: heading anterior a la primera ocurrencia.
+  if (anchors.length > 0) {
+    const heading = findHeadingBefore(html, anchors[0].index)
+    if (heading) return heading
+  }
+  return null
 }
 
 export function parse({ html, text }) {
   const offers = []
-  if (!html) return offers
+  if (!html && !text) return offers
   const seen = new Set()
 
-  let m
-  JOB_URL_RE.lastIndex = 0
-  while ((m = JOB_URL_RE.exec(html)) !== null) {
-    const jobId = m[1]
-    if (seen.has(jobId)) continue
-    seen.add(jobId)
-
-    const canonicalUrl = `https://www.linkedin.com/jobs/view/${jobId}/`
-
-    // Intentar título desde el contenido del <a> que envuelve esta URL.
-    let title = null
-    const anchor = findEnclosingAnchor(html, m.index)
-    if (anchor) {
-      const txt = decodeEntities(stripTags(anchor.inner))
-      // Filtros: textos muy cortos suelen ser "Ver oferta" o iconos. Demasiado
-      // largo suele incluir empresa+ubicación juntos.
-      if (txt && txt.length >= 5 && txt.length <= 200) {
-        title = txt
-      }
+  if (html) {
+    let m
+    JOB_URL_RE.lastIndex = 0
+    while ((m = JOB_URL_RE.exec(html)) !== null) {
+      const jobId = m[1]
+      if (seen.has(jobId)) continue
+      seen.add(jobId)
+      const canonicalUrl = `https://www.linkedin.com/jobs/view/${jobId}/`
+      const title = pickTitle(html, jobId)
+      offers.push({
+        external_id: jobId,
+        url: canonicalUrl,
+        title: title || `LinkedIn job ${jobId}`,
+        company_name: null,
+        location: null,
+        remote: null,
+        description: null,
+        posted_at: null,
+      })
     }
-
-    offers.push({
-      external_id: jobId,
-      url: canonicalUrl,
-      title: title || `LinkedIn job ${jobId}`,
-      company_name: null, // se rellenará en futuras iteraciones si conseguimos selectors estables
-      location: null,
-      remote: null,
-      description: null,
-      posted_at: null,
-    })
   }
 
-  // Fallback: si no encontramos nada en HTML pero el texto plano menciona
-  // URLs, intentamos también ahí.
+  // Fallback al text/plain si HTML no dio nada.
   if (offers.length === 0 && text) {
     let tm
     const textRe = new RegExp(JOB_URL_RE.source, 'gi')
