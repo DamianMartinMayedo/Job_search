@@ -14,6 +14,10 @@ export default function EmailComposer({
   company,
   contacts,
   initialContact,
+  // prefill: { templateId, jobTitle, jobUrl, jobLocation } — viene cuando se
+  // abre el composer desde una oferta. Si templateId está, se aplica auto.
+  // jobTitle/jobUrl/jobLocation se inyectan en el render como {{job_*}}.
+  prefill,
   onSubmit,
   isSubmitting,
 }) {
@@ -32,6 +36,13 @@ export default function EmailComposer({
     pair_name: '',
   })
 
+  // Datos de oferta que se inyectan en cada render de la plantilla.
+  const jobData = {
+    job_title: prefill?.jobTitle || '',
+    job_url: prefill?.jobUrl || '',
+    job_location: prefill?.jobLocation || '',
+  }
+
   useEffect(() => {
     if (open) {
       setForm({
@@ -44,6 +55,18 @@ export default function EmailComposer({
       })
     }
   }, [open, initialContact, companyEmail])
+
+  // Auto-aplicar plantilla cuando viene desde prefill (típico: al abrir desde una oferta).
+  // Se ejecuta tras que templates y settings hayan cargado.
+  useEffect(() => {
+    if (!open || !prefill?.templateId || !templates || !settings) return
+    const template = templates.find((t) => t.id === prefill.templateId)
+    if (!template) return
+    // Sólo aplicar si todavía no hay template seleccionada (evita pisar cambios manuales del usuario).
+    if (form.template_id) return
+    handleTemplateSelect(prefill.templateId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, prefill?.templateId, templates, settings])
 
   const getRecipientEmail = () => {
     if (form.recipient_email) return form.recipient_email
@@ -73,21 +96,21 @@ export default function EmailComposer({
     return contact?.role || ''
   }
 
+  const buildRenderData = (contactId) => ({
+    company_name: company?.name || '',
+    contact_name: getContactName(contactId),
+    contact_role: getContactRole(contactId),
+    my_name: settings?.my_name || '',
+    my_role: company?.my_role || settings?.my_role || '',
+    my_web: settings?.my_web || '',
+    my_email: settings?.my_email || '',
+    ...jobData,
+  })
+
   const handleTemplateSelect = (templateId) => {
     const template = templates?.find((t) => t.id === templateId)
     if (!template || !settings) return
-
-    const contactId = form.contact_id
-    const data = {
-      company_name: company?.name || '',
-      contact_name: getContactName(contactId),
-      contact_role: getContactRole(contactId),
-      my_name: settings.my_name || '',
-      my_role: company?.my_role || settings.my_role || '',
-      my_web: settings.my_web || '',
-      my_email: settings.my_email || '',
-    }
-
+    const data = buildRenderData(form.contact_id)
     setForm({
       ...form,
       template_id: templateId,
@@ -103,15 +126,7 @@ export default function EmailComposer({
       requestAnimationFrame(() => {
         const template = templates?.find((t) => t.id === form.template_id)
         if (template && settings) {
-          const data = {
-            company_name: company?.name || '',
-            contact_name: getContactName(newContactId),
-            contact_role: getContactRole(newContactId),
-            my_name: settings.my_name || '',
-            my_role: company?.my_role || settings.my_role || '',
-            my_web: settings.my_web || '',
-            my_email: settings.my_email || '',
-          }
+          const data = buildRenderData(newContactId)
           setForm((f) => ({
             ...f,
             subject: renderSubject(template, data),

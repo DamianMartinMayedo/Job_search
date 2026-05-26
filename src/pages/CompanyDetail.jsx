@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send, Briefcase, Archive } from 'lucide-react'
 import Tabs from '../components/ui/Tabs'
 import Badge from '../components/ui/Badge'
@@ -47,9 +47,13 @@ const EDIT_FIELDS = {
 export default function CompanyDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [tab, setTab] = useState('messages')
   const [showContactForm, setShowContactForm] = useState(false)
   const [showMessageForm, setShowMessageForm] = useState(false)
+  // Prefill del composer cuando se llega desde una oferta vía query string.
+  // Se vacía al cerrar el composer y se limpia el query.
+  const [composerPrefill, setComposerPrefill] = useState(null)
   const [notes, setNotes] = useState('')
   const notesTimerRef = useRef(null)
   // Un único state para todos los inline edits: { kind: 'email'|'website'|..., value: string } | null
@@ -81,6 +85,27 @@ export default function CompanyDetail() {
       if (notesTimerRef.current) clearTimeout(notesTimerRef.current)
     }
   }, [])
+
+  // Llegada desde una oferta: ?compose=1&templateId=...&jobTitle=...&jobUrl=...&jobLocation=...
+  // Abre el EmailComposer pre-rellenado y limpia el query de la URL.
+  useEffect(() => {
+    if (searchParams.get('compose') !== '1') return
+    setComposerPrefill({
+      templateId: searchParams.get('templateId') || null,
+      jobTitle: searchParams.get('jobTitle') || '',
+      jobUrl: searchParams.get('jobUrl') || '',
+      jobLocation: searchParams.get('jobLocation') || '',
+    })
+    setShowMessageForm(true)
+    // Limpiar el query string sin recargar para no abrir el composer en cada navegación.
+    const next = new URLSearchParams(searchParams)
+    next.delete('compose')
+    next.delete('templateId')
+    next.delete('jobTitle')
+    next.delete('jobUrl')
+    next.delete('jobLocation')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams])
 
   const contacts = company?.contacts || []
   const companyMessages = company?.messages || []
@@ -486,9 +511,10 @@ export default function CompanyDetail() {
       {showMessageForm && (
         <EmailComposer
           open={showMessageForm}
-          onClose={() => setShowMessageForm(false)}
+          onClose={() => { setShowMessageForm(false); setComposerPrefill(null) }}
           company={company}
           contacts={contacts || []}
+          prefill={composerPrefill}
           onSubmit={handleMessageSubmit}
           isSubmitting={createMessage.isPending}
         />
