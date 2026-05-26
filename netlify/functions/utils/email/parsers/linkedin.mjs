@@ -115,9 +115,50 @@ function pickTitle(html, jobId) {
   return null
 }
 
+// El text/plain de los emails de Job Alert de LinkedIn tiene un patrón estable
+// y muy limpio: 3 líneas (título, empresa, ubicación) seguidas de
+// "Ver anuncio de empleo: <URL>". Lo aprovechamos como fuente primaria.
+//
+// Devuelve Map<jobId, { title, company, location, url }>.
+function parseLinkedInPlainText(text) {
+  const map = new Map()
+  if (!text) return map
+  // mailparser ya decodifica quoted-printable, pero por si acaso desenvolvemos
+  // continuaciones "=\n" que dejaría el codificador 7bit.
+  const clean = text.replace(/=\r?\n/g, '')
+  // Caza tanto el español ("Ver anuncio de empleo:") como variantes inglesas
+  // ("View job:") por si la cuenta del usuario está en EN.
+  const re = /(?:Ver anuncio de empleo|View job|View jobs?):\s*(https?:\/\/[^\s\n]*?\/jobs\/view\/(\d+)[^\s\n]*)/gi
+  let prevIdx = 0
+  let m
+  while ((m = re.exec(clean)) !== null) {
+    const url = m[1]
+    const jobId = m[2]
+    // Tomamos las 3 últimas líneas NO vacías antes del marker "Ver anuncio…":
+    // por convención de LinkedIn → título, empresa, ubicación (en ese orden).
+    const before = clean.slice(prevIdx, m.index)
+    const lines = before.split('\n').map((l) => l.trim()).filter(Boolean)
+    const last3 = lines.slice(-3)
+    if (last3.length === 3 && !map.has(jobId)) {
+      const [title, company, location] = last3
+      map.set(jobId, { title, company, location, url })
+    }
+    prevIdx = m.index + m[0].length
+  }
+  return map
+}
+
+function isRemoteLocation(loc) {
+  if (!loc) return null
+  return /\b(remote|remoto|remota|teletrabajo|fully remote|world[\s-]?wide)\b/i.test(loc)
+    ? true
+    : null
+}
+
 export function parse({ html, text }) {
   const offers = []
   if (!html && !text) return offers
+  const textMeta = parseLinkedInPlainText(text)
   const seen = new Set()
 
   if (html) {
@@ -128,35 +169,36 @@ export function parse({ html, text }) {
       if (seen.has(jobId)) continue
       seen.add(jobId)
       const canonicalUrl = `https://www.linkedin.com/jobs/view/${jobId}/`
-      const title = pickTitle(html, jobId)
+      // text/plain gana sobre HTML cuando los dos tienen datos: el text trae
+      // título limpio + empresa + ciudad, mientras que el HTML solo nos da el título.
+      const meta = textMeta.get(jobId)
+      const titleFromHtml = pickTitle(html, jobId)
       offers.push({
         external_id: jobId,
         url: canonicalUrl,
-        title: title || `LinkedIn job ${jobId}`,
-        company_name: null,
-        location: null,
-        remote: null,
+        title: meta?.title || titleFromHtml || `LinkedIn job ${jobId}`,
+        company_name: meta?.company || null,
+        location: meta?.location || null,
+        remote: isRemoteLocation(meta?.location),
         description: null,
         posted_at: null,
       })
     }
   }
 
-  // Fallback al text/plain si HTML no dio nada.
-  if (offers.length === 0 && text) {
-    let tm
-    const textRe = new RegExp(JOB_URL_RE.source, 'gi')
-    while ((tm = textRe.exec(text)) !== null) {
-      const jobId = tm[1]
+  // Fallback al text/plain si HTML no dio nada — caso raro pero útil para emails
+  // que llegan sin parte HTML válida.
+  if (offers.length === 0 && textMeta.size > 0) {
+    for (const [jobId, meta] of textMeta) {
       if (seen.has(jobId)) continue
       seen.add(jobId)
       offers.push({
         external_id: jobId,
-        url: `https://www.linkedin.com/jobs/view/${jobId}/`,
-        title: `LinkedIn job ${jobId}`,
-        company_name: null,
-        location: null,
-        remote: null,
+        url: meta.url || `https://www.linkedin.com/jobs/view/${jobId}/`,
+        title: meta.title || `LinkedIn job ${jobId}`,
+        company_name: meta.company || null,
+        location: meta.location || null,
+        remote: isRemoteLocation(meta.location),
         description: null,
         posted_at: null,
       })

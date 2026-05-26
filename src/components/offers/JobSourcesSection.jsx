@@ -373,13 +373,13 @@ export default function JobSourcesSection() {
                       {f.options.map((o) => (
                         <option key={o.value} value={o.value}>{o.label}</option>
                       ))}
-                      <option value="__custom__">Otra keyword…</option>
+                      <option value="__custom__">{f.customLabel || 'Otra keyword…'}</option>
                     </select>
                     {isCustom && (
                       <Input
                         value={value}
                         onChange={(e) => setWizardValues((vs) => ({ ...vs, [f.key]: e.target.value }))}
-                        placeholder="ej: figma"
+                        placeholder={f.customPlaceholder || 'ej: figma'}
                         className="flex-1"
                       />
                     )}
