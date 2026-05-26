@@ -73,6 +73,53 @@ const TECNOEMPLEO_KEYWORDS = [
   { value: 'web', label: 'Web' },
 ]
 
+// Categorías oficiales de WeWorkRemotely (slug usado en /categories/<slug>.rss).
+const WWR_CATEGORIES = [
+  { value: 'remote-design-jobs', label: 'Diseño' },
+  { value: 'remote-product-jobs', label: 'Producto' },
+  { value: 'remote-front-end-programming-jobs', label: 'Front-End' },
+  { value: 'remote-full-stack-programming-jobs', label: 'Full-Stack' },
+  { value: 'remote-back-end-programming-jobs', label: 'Back-End' },
+  { value: 'remote-software-developer-jobs', label: 'Software Development' },
+  { value: 'remote-devops-sysadmin-jobs', label: 'DevOps / Sysadmin' },
+  { value: 'remote-management-and-finance-jobs', label: 'Management / Finance' },
+  { value: 'remote-sales-and-marketing-jobs', label: 'Sales / Marketing' },
+  { value: 'remote-customer-support-jobs', label: 'Customer Support' },
+  { value: 'all-other-remote-jobs', label: 'Otros' },
+]
+
+// Tags abiertas de RemoteOK. El portal genera /remote-<tag>-jobs.rss para cualquier tag.
+const REMOTEOK_TAGS = [
+  { value: 'design', label: 'Design (general)' },
+  { value: 'ux', label: 'UX' },
+  { value: 'ui', label: 'UI' },
+  { value: 'product-design', label: 'Product Design' },
+  { value: 'frontend', label: 'Frontend' },
+  { value: 'dev', label: 'Dev (general)' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'product', label: 'Product' },
+]
+
+// Categorías oficiales de Remotive (slug usado en /remote-jobs/feed/<slug>).
+const REMOTIVE_CATEGORIES = [
+  { value: 'design', label: 'Diseño' },
+  { value: 'product', label: 'Product Management' },
+  { value: 'software-development', label: 'Software Development' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'customer-service', label: 'Customer Service' },
+  { value: 'data', label: 'Data & Analytics' },
+  { value: 'engineering', label: 'Engineering' },
+  { value: 'devops', label: 'DevOps' },
+  { value: 'qa', label: 'QA' },
+  { value: 'artificial-intelligence', label: 'AI' },
+  { value: 'business-development', label: 'Business Development' },
+  { value: 'writing', label: 'Writing' },
+]
+
+function labelFromOptions(options, value) {
+  return options.find((o) => o.value === value)?.label || value
+}
+
 export const JOB_PORTAL_CATALOG = [
   {
     id: 'tecnoempleo',
@@ -116,60 +163,72 @@ export const JOB_PORTAL_CATALOG = [
     },
   },
   {
-    id: 'weworkremotely-design',
-    label: 'WeWorkRemotely · Diseño',
-    description: 'Tablón internacional de ofertas remotas de diseño.',
+    id: 'weworkremotely',
+    label: 'WeWorkRemotely',
+    description: 'Tablón internacional de ofertas remotas. Categorías oficiales del portal.',
     language: 'en',
     region: 'Remoto',
-    fields: [],
-    build: () => ({
-      name: 'WeWorkRemotely · Diseño',
-      url: 'https://weworkremotely.com/categories/remote-design-jobs.rss',
+    fields: [
+      {
+        key: 'category',
+        label: 'Categoría',
+        type: 'select',
+        options: WWR_CATEGORIES,
+        default: 'remote-design-jobs',
+      },
+    ],
+    build: ({ category }) => ({
+      name: `WeWorkRemotely · ${labelFromOptions(WWR_CATEGORIES, category)}`,
+      url: `https://weworkremotely.com/categories/${category}.rss`,
       language: 'en',
       region: 'Remoto',
       type: 'rss',
     }),
   },
   {
-    id: 'remoteok-ux',
-    label: 'RemoteOK · UX',
-    description: 'Ofertas UX remotas en RemoteOK.',
+    id: 'remoteok',
+    label: 'RemoteOK',
+    description: 'Acepta tags libres. Empieza por una predefinida o escribe la tuya.',
     language: 'en',
     region: 'Remoto',
-    fields: [],
-    build: () => ({
-      name: 'RemoteOK · UX',
-      url: 'https://remoteok.com/remote-ux-jobs.rss',
-      language: 'en',
-      region: 'Remoto',
-      type: 'rss',
-    }),
+    fields: [
+      {
+        key: 'tag',
+        label: 'Tag / Área',
+        type: 'select-or-custom',
+        options: REMOTEOK_TAGS,
+        default: 'design',
+      },
+    ],
+    build: ({ tag }) => {
+      const slug = (tag || '').trim().toLowerCase()
+      return {
+        name: `RemoteOK · ${labelFromOptions(REMOTEOK_TAGS, slug)}`,
+        url: slug ? `https://remoteok.com/remote-${slug}-jobs.rss` : '',
+        language: 'en',
+        region: 'Remoto',
+        type: 'rss',
+      }
+    },
   },
   {
-    id: 'remoteok-design',
-    label: 'RemoteOK · Diseño',
-    description: 'Mezcla diseño gráfico, producto y UX.',
+    id: 'remotive',
+    label: 'Remotive',
+    description: 'Feed curado. Categorías oficiales del portal.',
     language: 'en',
     region: 'Remoto',
-    fields: [],
-    build: () => ({
-      name: 'RemoteOK · Diseño',
-      url: 'https://remoteok.com/remote-design-jobs.rss',
-      language: 'en',
-      region: 'Remoto',
-      type: 'rss',
-    }),
-  },
-  {
-    id: 'remotive-design',
-    label: 'Remotive · Diseño',
-    description: 'Feed curado de ofertas remotas de diseño.',
-    language: 'en',
-    region: 'Remoto',
-    fields: [],
-    build: () => ({
-      name: 'Remotive · Diseño',
-      url: 'https://remotive.com/remote-jobs/feed/design',
+    fields: [
+      {
+        key: 'category',
+        label: 'Categoría',
+        type: 'select',
+        options: REMOTIVE_CATEGORIES,
+        default: 'design',
+      },
+    ],
+    build: ({ category }) => ({
+      name: `Remotive · ${labelFromOptions(REMOTIVE_CATEGORIES, category)}`,
+      url: `https://remotive.com/remote-jobs/feed/${category}`,
       language: 'en',
       region: 'Remoto',
       type: 'rss',
