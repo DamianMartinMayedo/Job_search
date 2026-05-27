@@ -1,9 +1,10 @@
-import { Mail, RefreshCw, CheckCircle2, AlertCircle, Inbox } from 'lucide-react'
+import { Mail, RefreshCw, CheckCircle2, AlertCircle, Inbox, RotateCcw } from 'lucide-react'
 import Button from '../ui/Button'
 import {
   useEmailIngestStatus,
   useEmailIngestLog,
   usePollEmails,
+  useReprocessUnmatched,
 } from '../../hooks/useJobOffers'
 import useAppStore from '../../store/useAppStore'
 
@@ -19,9 +20,27 @@ export default function EmailIngestSection() {
   const { data: status } = useEmailIngestStatus()
   const { data: log } = useEmailIngestLog(10)
   const pollEmails = usePollEmails()
+  const reprocessUnmatched = useReprocessUnmatched()
   const addToast = useAppStore((s) => s.addToast)
 
   const configured = !!status?.configured
+  const hasUnmatched = (log || []).some((row) => row.parser === 'unmatched')
+
+  const handleReprocess = () => {
+    reprocessUnmatched.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data.found === 0) {
+          addToast({ type: 'success', message: 'No hay correos sin parser pendientes' })
+          return
+        }
+        addToast({
+          type: data.missingInGmail ? 'error' : 'success',
+          message: `${data.reopened}/${data.found} correos reabiertos en Gmail · pulsa "Comprobar emails" para reintentar${data.missingInGmail ? ` · ${data.missingInGmail} ya no están en el folder` : ''}`,
+        })
+      },
+      onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+    })
+  }
 
   const handlePoll = () => {
     pollEmails.mutate(undefined, {
@@ -53,15 +72,29 @@ export default function EmailIngestSection() {
             Ingesta por email <span className="text-xs font-normal text-slate-400">(LinkedIn, InfoJobs…)</span>
           </h2>
         </div>
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={handlePoll}
-          disabled={!configured || pollEmails.isPending}
-        >
-          <RefreshCw size={14} className={pollEmails.isPending ? 'animate-spin' : ''} />
-          Comprobar emails ahora
-        </Button>
+        <div className="flex items-center gap-2">
+          {hasUnmatched && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleReprocess}
+              disabled={!configured || reprocessUnmatched.isPending}
+              title="Reabre en Gmail los correos sin parser y borra su entrada del log para reintentarlos."
+            >
+              <RotateCcw size={14} className={reprocessUnmatched.isPending ? 'animate-spin' : ''} />
+              Reintentar sin parser
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handlePoll}
+            disabled={!configured || pollEmails.isPending}
+          >
+            <RefreshCw size={14} className={pollEmails.isPending ? 'animate-spin' : ''} />
+            Comprobar emails ahora
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4 p-6">

@@ -104,3 +104,34 @@ export async function markAsRead(uids, folder = defaultFolder()) {
     await client.messageFlagsAdd(uids, ['\\Seen'], { uid: true })
   })
 }
+
+/**
+ * Busca por Message-Id en el folder y quita el flag \Seen. Útil para
+ * reprocesar emails que ya fueron marcados como leídos por el cron (por
+ * ejemplo: los que quedaron como `unmatched` antes de tener su parser).
+ *
+ * Devuelve { matched, missing } con los messageIds reencontrados y los que
+ * no se encontraron (probablemente borrados / fuera del folder).
+ */
+export async function markAsUnreadByMessageIds(messageIds, folder = defaultFolder()) {
+  if (!messageIds || messageIds.length === 0) return { matched: [], missing: [] }
+  return withInbox(folder, async (client) => {
+    const matched = []
+    const missing = []
+    for (const mid of messageIds) {
+      try {
+        const uids = await client.search({ header: { 'message-id': mid } }, { uid: true })
+        if (uids && uids.length > 0) {
+          await client.messageFlagsRemove(uids, ['\\Seen'], { uid: true })
+          matched.push(mid)
+        } else {
+          missing.push(mid)
+        }
+      } catch (err) {
+        console.error(`[imap] markAsUnread search falló para ${mid}:`, err.message)
+        missing.push(mid)
+      }
+    }
+    return { matched, missing }
+  })
+}

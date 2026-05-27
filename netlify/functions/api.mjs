@@ -5,7 +5,7 @@ import { validateBody, clampOffset } from './utils/validate.mjs'
 import { sendEmail } from './utils/mailer.mjs'
 import { runAllSources } from './utils/fetchers/index.mjs'
 import { getEmailIngestStatus } from './utils/email/imap.mjs'
-import { pollEmails, getRecentIngestLog } from './utils/email/router.mjs'
+import { pollEmails, getRecentIngestLog, reprocessUnmatched } from './utils/email/router.mjs'
 
 function getCookie(req, name) {
   const header = req.headers.get('cookie') || ''
@@ -1069,6 +1069,16 @@ async function handleJobSources(method, id, req) {
     } catch (err) {
       console.error('poll-emails-now error:', err)
       return error(`Error al leer emails: ${err.message}`, 500)
+    }
+  }
+
+  if (id === 'reprocess-unmatched' && method === 'POST') {
+    try {
+      const summary = await reprocessUnmatched()
+      return json({ ok: true, ...summary })
+    } catch (err) {
+      console.error('reprocess-unmatched error:', err)
+      return error(`Error al reprocesar: ${err.message}`, 500)
     }
   }
 

@@ -130,3 +130,13 @@ export function usePollEmails() {
   })
 }
 
+export function useReprocessUnmatched() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post('/job-sources/reprocess-unmatched', {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['email-ingest-log'] })
+    },
+  })
+}
+

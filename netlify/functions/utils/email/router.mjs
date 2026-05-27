@@ -1,10 +1,11 @@
 import sql from '../db.mjs'
-import { fetchUnreadMessages, markAsRead } from './imap.mjs'
+import { fetchUnreadMessages, markAsRead, markAsUnreadByMessageIds } from './imap.mjs'
 import * as linkedin from './parsers/linkedin.mjs'
+import * as infojobs from './parsers/infojobs.mjs'
 
 // Orden de evaluación: cada parser tiene su `match()`. El primero que matchea gana.
 // Los parsers que necesiten un selector más específico van antes que los genéricos.
-const PARSERS = [linkedin]
+const PARSERS = [linkedin, infojobs]
 
 function pickParser(msg) {
   for (const p of PARSERS) {
@@ -192,6 +193,57 @@ export async function pollEmails({ limit = 50 } = {}) {
     totalOffers,
     byParser,
     errors,
+  }
+}
+
+/**
+ * Re-encola los emails que en su día se loguearon como `unmatched`:
+ *   1. Los marca como NO leídos en Gmail (vía búsqueda por Message-Id).
+ *   2. Borra sus filas del email_ingest_log para anular el dedup.
+ * El siguiente `pollEmails()` los traerá de nuevo y, si ya hay un parser
+ * que los matchea (p.ej. acabamos de añadir Infojobs), se procesarán bien.
+ *
+ * Devuelve resumen { found, reopened, missingInGmail, logsDeleted }.
+ */
+export async function reprocessUnmatched({ limit = 200 } = {}) {
+  const rows = await sql`
+    SELECT message_id FROM email_ingest_log
+    WHERE parser = 'unmatched' AND message_id IS NOT NULL
+    ORDER BY processed_at DESC
+    LIMIT ${limit}
+  `
+  if (rows.length === 0) {
+    return { found: 0, reopened: 0, missingInGmail: 0, logsDeleted: 0 }
+  }
+  const messageIds = rows.map((r) => r.message_id)
+  let matched = []
+  let missing = []
+  try {
+    const result = await markAsUnreadByMessageIds(messageIds)
+    matched = result.matched
+    missing = result.missing
+  } catch (err) {
+    console.error('[email-router] reprocessUnmatched: markAsUnread falló:', err.message)
+    throw err
+  }
+
+  // Borramos del log SOLO los que pudimos reabrir en Gmail. Los `missing`
+  // (emails que ya no están en el folder) los dejamos para no perder traza.
+  let logsDeleted = 0
+  if (matched.length > 0) {
+    const deleted = await sql`
+      DELETE FROM email_ingest_log
+      WHERE message_id IN ${sql(matched)}
+      RETURNING id
+    `
+    logsDeleted = deleted.length
+  }
+
+  return {
+    found: rows.length,
+    reopened: matched.length,
+    missingInGmail: missing.length,
+    logsDeleted,
   }
 }
 
