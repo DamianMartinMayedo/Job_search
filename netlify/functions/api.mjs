@@ -861,24 +861,29 @@ async function handleDocumentPairs(method, id, req) {
   if (method === 'POST') {
     const { pair_name, cv, cover } = await req.json()
     if (!pair_name) return error('pair_name requerido', 400)
-    if (!cv?.name || !cover?.name) return error('CV y carta requeridos', 400)
+    if (!cv?.name) return error('CV requerido', 400)
+    // cover es opcional: se puede crear un set con solo el CV
 
     // Eliminar docs existentes del par
     await sql`DELETE FROM documents WHERE pair_name = ${pair_name} AND company_id IS NULL`
 
     const cvContent = cv.content ? Buffer.from(cv.content, 'base64') : null
-    const coverContent = cover.content ? Buffer.from(cover.content, 'base64') : null
 
     const [newCv] = await sql`
       INSERT INTO documents (type, name, content, pair_name)
       VALUES ('cv', ${cv.name}, ${cvContent}, ${pair_name})
       RETURNING id, type, name, pair_name, created_at, updated_at
     `
-    const [newCover] = await sql`
-      INSERT INTO documents (type, name, content, pair_name)
-      VALUES ('cover_letter', ${cover.name}, ${coverContent}, ${pair_name})
-      RETURNING id, type, name, pair_name, created_at, updated_at
-    `
+
+    let newCover = null
+    if (cover?.name) {
+      const coverContent = cover.content ? Buffer.from(cover.content, 'base64') : null
+      ;[newCover] = await sql`
+        INSERT INTO documents (type, name, content, pair_name)
+        VALUES ('cover_letter', ${cover.name}, ${coverContent}, ${pair_name})
+        RETURNING id, type, name, pair_name, created_at, updated_at
+      `
+    }
 
     return json({ pair_name, cv: newCv, cover: newCover }, 201)
   }

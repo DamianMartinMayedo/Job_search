@@ -92,8 +92,8 @@ export default function Settings() {
 
   const handleCreatePair = () => {
     if (!pairForm.pair_name.trim()) return
-    if (!pairCv || !pairCover) {
-      addToast({ type: 'error', message: 'Selecciona un CV y una carta' })
+    if (!pairCv) {
+      addToast({ type: 'error', message: 'Selecciona un CV' })
       return
     }
 
@@ -104,7 +104,10 @@ export default function Settings() {
         reader.readAsDataURL(file)
       })
 
-    Promise.all([readFile(pairCv), readFile(pairCover)]).then(([cv, cover]) => {
+    const cvPromise = readFile(pairCv)
+    const coverPromise = pairCover ? readFile(pairCover) : Promise.resolve(null)
+
+    Promise.all([cvPromise, coverPromise]).then(([cv, cover]) => {
       createPair.mutate(
         { pair_name: pairForm.pair_name.trim(), cv, cover },
         {
@@ -427,7 +430,7 @@ export default function Settings() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Carta de presentación (PDF)</label>
+            <label className="text-sm font-medium text-slate-700">Carta de presentación (PDF) <span className="font-normal text-slate-400">— opcional</span></label>
             {pairCover ? (
               <div className="flex items-center justify-between rounded-lg border border-slate-200 p-2">
                 <span className="text-sm text-slate-600 truncate">{pairCover.name}</span>
@@ -467,7 +470,7 @@ export default function Settings() {
             </Button>
             <Button
               onClick={handleCreatePair}
-              disabled={createPair.isPending || !pairForm.pair_name.trim() || !pairCv || !pairCover}
+              disabled={createPair.isPending || !pairForm.pair_name.trim() || !pairCv}
             >
               {createPair.isPending ? 'Creando...' : 'Crear par'}
             </Button>
@@ -479,7 +482,7 @@ export default function Settings() {
         open={!!deletePairTarget}
         onClose={() => setDeletePairTarget(null)}
         title="Eliminar par de documentos"
-        message={`¿Eliminar el par "${deletePairTarget?.pair_name}" (CV y carta)?`}
+        message={`¿Eliminar los documentos del set "${deletePairTarget?.pair_name}"?`}
         confirmLabel="Eliminar"
         danger
         isSubmitting={deletePair.isPending}

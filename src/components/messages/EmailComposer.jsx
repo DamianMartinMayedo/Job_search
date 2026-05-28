@@ -250,7 +250,7 @@ export default function EmailComposer({
               <option value="">Sin adjuntos</option>
               {pairs.map((p) => (
                 <option key={p.pair_name} value={p.pair_name}>
-                  {p.pair_name}
+                  {p.pair_name}{p.cover ? ' (CV + Carta)' : ' (Solo CV)'}
                 </option>
               ))}
             </select>

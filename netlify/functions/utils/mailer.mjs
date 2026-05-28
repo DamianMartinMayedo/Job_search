@@ -25,7 +25,9 @@ export async function sendEmail({ to, subject, body, attachments }) {
     from: process.env.SMTP_USER,
     to,
     subject,
-    text: body,
+    // Añadir línea en blanco al final del body para que los clientes de correo
+    // muestren separación visual antes de los archivos adjuntos.
+    text: attachments?.length ? body.trimEnd() + '\n\n' : body,
   }
 
   if (attachments?.length) {
