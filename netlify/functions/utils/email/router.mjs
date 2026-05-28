@@ -2,11 +2,10 @@ import sql from '../db.mjs'
 import { fetchUnreadMessages, markAsRead, markAsUnreadByMessageIds } from './imap.mjs'
 import * as linkedin from './parsers/linkedin.mjs'
 import * as infojobs from './parsers/infojobs.mjs'
-import * as tecnoempleo from './parsers/tecnoempleo.mjs'
 
 // Orden de evaluación: cada parser tiene su `match()`. El primero que matchea gana.
 // Los parsers que necesiten un selector más específico van antes que los genéricos.
-const PARSERS = [linkedin, infojobs, tecnoempleo]
+const PARSERS = [linkedin, infojobs]
 
 function pickParser(msg) {
   for (const p of PARSERS) {
