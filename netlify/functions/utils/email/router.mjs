@@ -78,6 +78,18 @@ async function logIngest({ messageId, from, subject, receivedAt, parser, offersE
 async function insertOffers(offers, source) {
   let inserted = 0
   for (const offer of offers) {
+    // Dedup por external_id: si la oferta ya existe (mismo id + source) la saltamos.
+    // Esto es necesario para parsers de email como Infojobs, donde la url de tracking
+    // cambia con cada email aunque la oferta sea la misma.
+    if (offer.external_id) {
+      const [existing] = await sql`
+        SELECT id FROM job_offers
+        WHERE source_id = ${source.id} AND external_id = ${offer.external_id}
+        LIMIT 1
+      `
+      if (existing) continue
+    }
+
     const company_id = await resolveCompanyId(offer)
     const row = {
       source_id: source.id,

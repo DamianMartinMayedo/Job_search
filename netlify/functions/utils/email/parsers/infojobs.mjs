@@ -94,7 +94,19 @@ export function parse({ html }) {
     const titleM = /id=["']oferta_nombre_([^"']+)["']/i.exec(before)
     const title = titleM ? decodeEntities(titleM[1].trim()) : null
 
-    // Paso 3: empresa y ubicación — en los ~1500 chars posteriores al hit
+    // Paso 3: URL de tracking — el primer href DESPUÉS del name="push-of-i..."
+    // es el del mismo <a> de título (el href viene justo después en el mismo tag).
+    // Las URLs de tracking de Infojobs apuntan a link.push.infojobs.net y
+    // redirigen a la URL canónica real de la oferta en infojobs.net.
+    // Las usamos como url porque: (a) funcionan, (b) llevan al usuario directamente
+    // a la oferta. La deduplicación se hace por external_id en el router.
+    const afterId = html.slice(pos, pos + 2000)
+    const hrefM = /href=["'](https?:\/\/link\.push\.infojobs\.net\/[^"']+)["']/i.exec(afterId)
+    const trackingUrl = hrefM
+      ? hrefM[1]
+      : `https://www.infojobs.net/of-${id}` // fallback si no hay tracking URL
+
+    // Paso 4: empresa y ubicación — en los ~1500 chars posteriores al hit
     // buscar el </a> de cierre y luego los dos primeros <td class="text">.
     const nextHitPos = hits[i + 1]?.pos ?? html.length
     const after = html.slice(pos, Math.min(nextHitPos, pos + 1500))
@@ -124,7 +136,7 @@ export function parse({ html }) {
 
     offers.push({
       external_id: id,
-      url: `https://www.infojobs.net/of-${id}`,
+      url: trackingUrl,
       title: title || `Infojobs ${id}`,
       company_name: company,
       location,
