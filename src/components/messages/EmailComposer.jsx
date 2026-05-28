@@ -220,24 +220,6 @@ export default function EmailComposer({
           </div>
         )}
 
-        {pairs && (
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Adjuntar documentos</label>
-            <select
-              value={form.pair_name}
-              onChange={(e) => handleChange('pair_name', e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
-            >
-              <option value="">Sin adjuntos</option>
-              {pairs.map((p) => (
-                <option key={p.pair_name} value={p.pair_name}>
-                  {p.pair_name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <Input
           label="Asunto *"
           value={form.subject}
@@ -256,6 +238,24 @@ export default function EmailComposer({
             required
           />
         </div>
+
+        {pairs && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700">Adjuntar documentos</label>
+            <select
+              value={form.pair_name}
+              onChange={(e) => handleChange('pair_name', e.target.value)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            >
+              <option value="">Sin adjuntos</option>
+              {pairs.map((p) => (
+                <option key={p.pair_name} value={p.pair_name}>
+                  {p.pair_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

@@ -176,10 +176,10 @@ export default function CompanyDetail() {
 
   const handleMessageSubmit = async (data, shouldSend, pairName) => {
     try {
-      const message = await createMessage.mutateAsync(data)
+      const message = await createMessage.mutateAsync({ ...data, pair_name: pairName || null })
       if (shouldSend) {
         sendMessage.mutate(
-          { messageId: message.id, pair_name: pairName },
+          { messageId: message.id },
           {
             onSuccess: () =>
               addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` }),

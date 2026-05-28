@@ -688,12 +688,16 @@ async function handleSendMessage(req) {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
   const body = await req.json()
-  const { messageId, pair_name } = body
+  const { messageId } = body
   if (!messageId) return error('messageId requerido', 400)
 
   const [message] = await sql`SELECT * FROM messages WHERE id = ${messageId}`
   if (!message) return notFound()
   if (message.smtp_sent_at) return error('El mensaje ya fue entregado por SMTP', 409)
+
+  // pair_name: prefer the one in the request body (envío inmediato desde el composer),
+  // fallback al que se guardó en el borrador.
+  const pair_name = body.pair_name ?? message.pair_name ?? null
 
   let to = message.recipient_email
   if (!to && message.contact_id) {
