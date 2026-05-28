@@ -11,6 +11,7 @@ import useAppStore from '../../store/useAppStore'
 const PARSER_LABELS = {
   linkedin: 'LinkedIn',
   infojobs: 'InfoJobs',
+  tecnoempleo: 'Tecnoempleo',
   manfred: 'Manfred',
   domestika: 'Domestika',
   unmatched: 'Sin parser',
