@@ -104,7 +104,7 @@ async function handleCompanies(method, id, req) {
     return json({ ...company, contacts, messages, activity })
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
 
     const valErr = validateBody(body, ['email'])
@@ -261,7 +261,7 @@ async function handleContacts(method, id, req) {
     return json({ contacts, total, page, limit })
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
 
     const valErr = validateBody(body, ['email'])
@@ -389,7 +389,7 @@ async function handleMessages(method, id, req) {
     return json({ messages, total, page, limit })
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
 
     const valErr = validateBody(body, ['recipient_email'])
@@ -554,7 +554,7 @@ async function handleTemplates(method, id, req) {
     return json(template)
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
     const valErr = validateBody(body)
     if (valErr) return error(valErr, 400)
@@ -799,7 +799,7 @@ async function handleDocuments(method, id, req) {
     })
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
     if (!body.type || !body.name) return error('type y name son requeridos', 400)
     if (!['cv', 'cover_letter'].includes(body.type)) return error('type debe ser cv o cover_letter', 400)
@@ -867,7 +867,7 @@ async function handleDocumentPairs(method, id, req) {
     return json(pairs)
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const { pair_name, cv, cover } = await req.json()
     if (!pair_name) return error('pair_name requerido', 400)
     if (!cv?.name) return error('CV requerido', 400)
@@ -1118,7 +1118,7 @@ async function handleJobSources(method, id, req) {
     return json(sources)
   }
 
-  if (method === 'POST') {
+  if (method === 'POST' && !id) {
     const body = await req.json()
     const valErr = validateBody(body)
     if (valErr) return error(valErr, 400)
