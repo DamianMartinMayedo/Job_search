@@ -43,7 +43,6 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      onClick={(e) => e.target === overlayRef.current && onClose()}
     >
       <div
         className={`w-full ${sizeClasses[size]} rounded-lg border border-[#EAEAEA] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-[opacity,transform] duration-200 ease-[var(--ease-out-expo)] ${open ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
