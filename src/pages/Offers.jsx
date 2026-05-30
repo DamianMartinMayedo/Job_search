@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Briefcase, ExternalLink, MapPin, Wifi, Trash2, Send } from 'lucide-react'
+import { Briefcase, ArrowSquareOut, MapPin, WifiHigh, Trash, PaperPlaneRight } from '@phosphor-icons/react'
 import EmptyState from '../components/ui/EmptyState'
 import ConfirmModal from '../components/ui/ConfirmModal'
 import Pagination from '../components/ui/Pagination'
@@ -24,6 +24,7 @@ export default function Offers() {
   const filters = useAppStore((s) => s.offersFilters)
   const setFilter = useAppStore((s) => s.setOffersFilter)
   const addToast = useAppStore((s) => s.addToast)
+  const dismissLoadingToast = useAppStore((s) => s.dismissLoadingToast)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkDelete, setBulkDelete] = useState(false)
@@ -57,41 +58,58 @@ export default function Offers() {
   const clearSelection = () => setSelectedIds(new Set())
 
   const handleBulkDelete = () => {
+    const n = selectedIds.size
+    addToast({ type: 'loading', message: `Eliminando ${n} ofertas...` })
     batchOffers.mutate(
       { ids: Array.from(selectedIds), action: 'delete' },
       {
         onSuccess: () => {
-          addToast({ type: 'success', message: `${selectedIds.size} ofertas eliminadas` })
+          dismissLoadingToast()
+          addToast({ type: 'success', message: `${n} ofertas eliminadas` })
           clearSelection()
           setBulkDelete(false)
         },
-        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+        onError: (err) => {
+          dismissLoadingToast()
+          addToast({ type: 'error', message: `Error: ${err.message}` })
+        },
       }
     )
   }
 
   const handleBulkStatus = (newStatus) => {
     if (selectedIds.size === 0) return
+    const n = selectedIds.size
+    addToast({ type: 'loading', message: `Actualizando ${n} ofertas...` })
     batchOffers.mutate(
       { ids: Array.from(selectedIds), action: 'status', status: newStatus },
       {
         onSuccess: () => {
-          addToast({ type: 'success', message: `${selectedIds.size} ofertas actualizadas a "${OFFER_STATUS_MAP[newStatus]?.label}"` })
+          dismissLoadingToast()
+          addToast({ type: 'success', message: `${n} ofertas actualizadas a "${OFFER_STATUS_MAP[newStatus]?.label}"` })
           clearSelection()
         },
-        onError: (err) => addToast({ type: 'error', message: `Error: ${err.message}` }),
+        onError: (err) => {
+          dismissLoadingToast()
+          addToast({ type: 'error', message: `Error: ${err.message}` })
+        },
       }
     )
   }
 
   const handleStatusChange = (offer, newStatus) => {
+    addToast({ type: 'loading', message: 'Cambiando estado...' })
     updateOffer.mutate(
       { id: offer.id, data: { status: newStatus } },
       {
-        onSuccess: () =>
-          addToast({ type: 'success', message: `Oferta marcada como "${OFFER_STATUS_MAP[newStatus]?.label}"` }),
-        onError: (err) =>
-          addToast({ type: 'error', message: `Error: ${err.message}` }),
+        onSuccess: () => {
+          dismissLoadingToast()
+          addToast({ type: 'success', message: `Oferta marcada como "${OFFER_STATUS_MAP[newStatus]?.label}"` })
+        },
+        onError: (err) => {
+          dismissLoadingToast()
+          addToast({ type: 'error', message: `Error: ${err.message}` })
+        },
       }
     )
   }
@@ -100,8 +118,8 @@ export default function Offers() {
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Ofertas</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">Ofertas</h1>
+          <p className="mt-1 text-sm text-[#787774]">
             {total} oferta{total !== 1 ? 's' : ''}
             {filters.status && ` · ${OFFER_STATUS_MAP[filters.status]?.label || filters.status}`}
           </p>
@@ -112,12 +130,12 @@ export default function Offers() {
             placeholder="Buscar título o empresa..."
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
           />
           <select
             value={filters.source_id}
             onChange={(e) => setFilter('source_id', e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
           >
             <option value="">Todas las fuentes</option>
             {sources?.map((s) => (
@@ -127,7 +145,7 @@ export default function Offers() {
           <select
             value={filters.status}
             onChange={(e) => setFilter('status', e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
           >
             <option value="">Todos los estados</option>
             {OFFER_STATUS.map((s) => (
@@ -138,7 +156,7 @@ export default function Offers() {
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-primary-600 px-4 py-3 text-white">
+        <div className="mt-4 flex items-center justify-between rounded-lg bg-[#111111] px-4 py-3 text-white">
           <span className="text-sm font-medium">
             {selectedIds.size} oferta{selectedIds.size !== 1 ? 's' : ''} seleccionada{selectedIds.size !== 1 ? 's' : ''}
           </span>
@@ -150,7 +168,7 @@ export default function Offers() {
                 e.target.value = ''
                 handleBulkStatus(v)
               }}
-              className="rounded-lg border border-primary-400 bg-primary-700 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
+              className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
             >
               <option value="">Cambiar estado...</option>
               {OFFER_STATUS.map((s) => (
@@ -159,10 +177,10 @@ export default function Offers() {
             </select>
             <button
               onClick={() => setBulkDelete(true)}
-              className="rounded-lg bg-white/15 px-3 py-1.5 text-sm hover:bg-white/25 cursor-pointer"
+              className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/15 cursor-pointer transition-colors"
               disabled={batchOffers.isPending}
             >
-              <Trash2 size={14} className="inline mr-1" />
+              <Trash size={14} weight="bold" className="inline mr-1" />
               Eliminar
             </button>
             <button
@@ -176,7 +194,7 @@ export default function Offers() {
       )}
 
       {isLoading ? (
-        <div className="mt-4 rounded-xl border border-slate-200 bg-white">
+        <div className="mt-4 rounded-lg border border-[#EAEAEA] bg-white">
           {Array.from({ length: 5 }).map((_, i) => (
             <SkeletonRow key={i} columns={4} />
           ))}
@@ -188,14 +206,14 @@ export default function Offers() {
           description="Configura una fuente RSS en Ajustes y ejecuta el agregador para empezar a recibir ofertas."
         />
       ) : (
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="hidden md:flex items-center border-b border-slate-200">
+        <div className="mt-4 overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="hidden md:flex items-center border-b border-[#EAEAEA]">
             <div className="flex shrink-0 items-center justify-center px-3 py-3">
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleSelectAll}
-                className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                className="size-4 rounded border-[#EAEAEA] cursor-pointer"
               />
             </div>
             <div className="flex-1 py-3 pr-6 text-xs font-medium uppercase tracking-wider text-slate-500">
@@ -207,14 +225,14 @@ export default function Offers() {
             return (
               <div
                 key={o.id}
-                className="flex items-start border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
+                className="flex items-start border-b border-[#EAEAEA] last:border-b-0 hover:bg-[#F7F6F3]"
               >
                 <div className="flex shrink-0 items-center justify-center px-3 py-4">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(o.id)}
                     onChange={() => toggleSelect(o.id)}
-                    className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    className="size-4 rounded border-[#EAEAEA] cursor-pointer"
                   />
                 </div>
                 <div className="flex flex-1 flex-col gap-3 py-4 pr-6 md:flex-row md:items-start md:justify-between">
@@ -222,7 +240,7 @@ export default function Offers() {
                     <div className="flex items-start gap-2">
                       <Link
                         to={`/app/offers/${o.id}`}
-                        className="text-sm font-semibold text-slate-900 hover:text-primary-600"
+                        className="text-sm font-semibold text-[#111111] hover:underline"
                       >
                         {o.title}
                       </Link>
@@ -230,19 +248,19 @@ export default function Offers() {
                         href={o.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="shrink-0 text-slate-400 hover:text-primary-600"
+                        className="shrink-0 text-[#ABABAB] hover:text-[#111111] transition-colors"
                         title="Abrir en el portal"
                       >
-                        <ExternalLink size={12} />
+                        <ArrowSquareOut size={12} weight="bold" />
                       </a>
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                       {o.company_id ? (
-                        <Link to={`/app/companies/${o.company_id}`} className="font-medium text-primary-600 hover:text-primary-700">
+                        <Link to={`/app/companies/${o.company_id}`} className="font-medium text-[#111111] hover:underline">
                           {o.company_known_name || o.company_name}
                         </Link>
                       ) : (
-                        o.company_name && <span className="font-medium text-slate-600">{o.company_name}</span>
+                        o.company_name && <span className="font-medium text-[#2F3437]">{o.company_name}</span>
                       )}
                       {o.location && (
                         <span className="flex items-center gap-1">
@@ -251,8 +269,8 @@ export default function Offers() {
                         </span>
                       )}
                       {o.remote && (
-                        <span className="flex items-center gap-1 text-emerald-600">
-                          <Wifi size={12} />
+                        <span className="flex items-center gap-1 text-[#346538]">
+                          <WifiHigh size={12} weight="bold" />
                           Remoto
                         </span>
                       )}
@@ -272,10 +290,10 @@ export default function Offers() {
                   <div className="flex shrink-0 items-center gap-2">
                     <button
                       onClick={() => setApplyTarget(o)}
-                      className="flex items-center gap-1 rounded-lg bg-primary-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-primary-700 cursor-pointer"
+                      className="flex items-center gap-1 rounded-lg bg-[#111111] px-2.5 py-1 text-xs font-medium text-white hover:bg-[#333333] cursor-pointer transition-colors"
                       title="Crear borrador con plantilla y placeholders rellenos"
                     >
-                      <Send size={12} />
+                      <PaperPlaneRight size={12} weight="bold" />
                       Aplicar
                     </button>
                     <select
@@ -292,10 +310,10 @@ export default function Offers() {
                     </select>
                     <button
                       onClick={() => setDeleteTarget(o)}
-                      className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                      className="rounded p-1.5 text-[#ABABAB] hover:bg-[#FDEBEC] hover:text-[#9F2F2D] cursor-pointer transition-colors"
                       title="Eliminar"
                     >
-                      <Trash2 size={14} />
+                      <Trash size={14} weight="bold" />
                     </button>
                   </div>
                 </div>
@@ -343,13 +361,17 @@ export default function Offers() {
         isSubmitting={deleteOffer.isPending}
         onConfirm={() => {
           if (!deleteTarget) return
+          addToast({ type: 'loading', message: 'Eliminando oferta...' })
           deleteOffer.mutate(deleteTarget.id, {
             onSuccess: () => {
+              dismissLoadingToast()
               addToast({ type: 'success', message: 'Oferta eliminada' })
               setDeleteTarget(null)
             },
-            onError: (err) =>
-              addToast({ type: 'error', message: `Error: ${err.message}` }),
+            onError: (err) => {
+              dismissLoadingToast()
+              addToast({ type: 'error', message: `Error: ${err.message}` })
+            },
           })
         }}
       />

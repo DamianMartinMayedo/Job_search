@@ -2,15 +2,15 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft,
-  ExternalLink,
+  ArrowSquareOut,
   MapPin,
-  Wifi,
-  Send,
-  Trash2,
-  Building2,
+  WifiHigh,
+  PaperPlaneRight,
+  Trash,
+  Buildings,
   Calendar,
   Rss,
-} from 'lucide-react'
+} from '@phosphor-icons/react'
 import { useJobOffer, useUpdateJobOffer, useDeleteJobOffer } from '../hooks/useJobOffers'
 import ApplyToOfferDialog from '../components/offers/ApplyToOfferDialog'
 import ConfirmModal from '../components/ui/ConfirmModal'
@@ -29,11 +29,7 @@ export default function OfferDetail() {
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   if (isLoading) {
-    return (
-      <div>
-        <SkeletonCard />
-      </div>
-    )
+    return <div><SkeletonCard /></div>
   }
 
   if (!offer) {
@@ -41,12 +37,12 @@ export default function OfferDetail() {
       <div>
         <button
           onClick={() => navigate('/app/offers')}
-          className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 cursor-pointer"
+          className="mb-4 flex items-center gap-1 text-sm text-[#787774] hover:text-[#111111] cursor-pointer transition-colors"
         >
-          <ArrowLeft size={16} />
+          <ArrowLeft size={16} weight="bold" />
           Volver a ofertas
         </button>
-        <p className="text-sm text-slate-500">Oferta no encontrada o eliminada.</p>
+        <p className="text-sm text-[#787774]">Oferta no encontrada o eliminada.</p>
       </div>
     )
   }
@@ -68,54 +64,54 @@ export default function OfferDetail() {
     <div>
       <button
         onClick={() => navigate('/app/offers')}
-        className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 cursor-pointer"
+        className="mb-4 flex items-center gap-1 text-sm text-[#787774] hover:text-[#111111] cursor-pointer transition-colors"
       >
-        <ArrowLeft size={16} />
+        <ArrowLeft size={16} weight="bold" />
         Volver a ofertas
       </button>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold text-slate-900">{offer.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+          <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">{offer.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[#2F3437]">
             {offer.company_id ? (
               <Link
                 to={`/app/companies/${offer.company_id}`}
-                className="flex items-center gap-1 font-medium text-primary-600 hover:text-primary-700"
+                className="flex items-center gap-1 font-medium text-[#111111] hover:underline"
               >
-                <Building2 size={14} />
+                <Buildings size={14} weight="regular" />
                 {offer.company_known_name || offer.company_name}
               </Link>
             ) : offer.company_name ? (
-              <span className="flex items-center gap-1 font-medium text-slate-700">
-                <Building2 size={14} />
+              <span className="flex items-center gap-1 font-medium text-[#2F3437]">
+                <Buildings size={14} weight="regular" />
                 {offer.company_name}
-                <span className="ml-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                <span className="ml-1 rounded-full bg-[#FBF3DB] px-2 py-0.5 text-[10px] font-medium text-[#956400]">
                   sin empresa en BD
                 </span>
               </span>
             ) : null}
             {offer.location && (
               <span className="flex items-center gap-1">
-                <MapPin size={14} />
+                <MapPin size={14} weight="regular" />
                 {offer.location}
               </span>
             )}
             {offer.remote && (
-              <span className="flex items-center gap-1 text-emerald-600">
-                <Wifi size={14} />
+              <span className="flex items-center gap-1 text-[#346538]">
+                <WifiHigh size={14} weight="regular" />
                 Remoto
               </span>
             )}
             {offer.source_name && (
-              <span className="flex items-center gap-1 text-slate-400">
-                <Rss size={12} />
+              <span className="flex items-center gap-1 text-[#ABABAB]">
+                <Rss size={12} weight="regular" />
                 {offer.source_name}
               </span>
             )}
             {offer.posted_at && (
-              <span className="flex items-center gap-1 text-slate-400">
-                <Calendar size={12} />
+              <span className="flex items-center gap-1 text-[#ABABAB]">
+                <Calendar size={12} weight="regular" />
                 {new Date(offer.posted_at).toLocaleDateString('es-ES')}
               </span>
             )}
@@ -130,23 +126,23 @@ export default function OfferDetail() {
             className={`rounded border px-2.5 py-1.5 text-sm font-medium focus:ring-2 focus:outline-hidden disabled:opacity-50 ${statusInfo.color} border-transparent`}
           >
             {OFFER_STATUS.map((s) => (
-              <option key={s.value} value={s.value} className="bg-white text-slate-900">{s.label}</option>
+              <option key={s.value} value={s.value} className="bg-white text-[#111111]">{s.label}</option>
             ))}
           </select>
           <button
             onClick={() => setApplyOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 cursor-pointer"
+            className="flex items-center gap-1.5 rounded-lg bg-[#111111] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#333333] cursor-pointer transition-colors"
           >
-            <Send size={14} />
+            <PaperPlaneRight size={14} weight="bold" />
             Aplicar
           </button>
         </div>
       </div>
 
       {offer.description && (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-sm font-semibold text-slate-900">Descripción</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{offer.description}</p>
+        <div className="mt-6 rounded-lg border border-[#EAEAEA] bg-white p-6">
+          <h2 className="text-sm font-semibold text-[#111111] tracking-[-0.01em]">Descripción</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-[#2F3437]">{offer.description}</p>
         </div>
       )}
 
@@ -155,16 +151,16 @@ export default function OfferDetail() {
           href={offer.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
+          className="flex items-center gap-1 text-[#111111] hover:underline transition-colors"
         >
-          <ExternalLink size={14} />
+          <ArrowSquareOut size={14} weight="bold" />
           Abrir oferta en el portal
         </a>
         <button
           onClick={() => setDeleteOpen(true)}
-          className="ml-auto flex items-center gap-1 text-xs text-red-500 hover:text-red-600 cursor-pointer"
+          className="ml-auto flex items-center gap-1 text-xs text-[#9F2F2D] hover:text-[#7A1F1C] cursor-pointer transition-colors"
         >
-          <Trash2 size={12} />
+          <Trash size={12} weight="bold" />
           Eliminar oferta
         </button>
       </div>

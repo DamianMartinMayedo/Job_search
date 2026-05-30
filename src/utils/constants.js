@@ -1,10 +1,10 @@
 export const COMPANY_STATUS = [
-  { value: 'new', label: 'Nueva', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-  { value: 'contacted', label: 'Contactada', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'replied', label: 'Respondió', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { value: 'interview', label: 'Entrevista', color: 'bg-green-100 text-green-700 border-green-200' },
-  { value: 'rejected', label: 'Descartada', color: 'bg-red-100 text-red-700 border-red-200' },
-  { value: 'archived', label: 'Archivada', color: 'bg-gray-100 text-gray-500 border-gray-200' },
+  { value: 'new', label: 'Nueva', color: 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]' },
+  { value: 'contacted', label: 'Contactada', color: 'bg-[#E1F3FE] text-[#1F6C9F] border-[#BEE0F9]' },
+  { value: 'replied', label: 'Respondió', color: 'bg-[#FBF3DB] text-[#956400] border-[#F0E0A8]' },
+  { value: 'interview', label: 'Entrevista', color: 'bg-[#EDF3EC] text-[#346538] border-[#C5DCC4]' },
+  { value: 'rejected', label: 'Descartada', color: 'bg-[#FDEBEC] text-[#9F2F2D] border-[#F9C9CB]' },
+  { value: 'archived', label: 'Archivada', color: 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]' },
 ]
 
 export const COMPANY_STATUS_MAP = Object.fromEntries(
@@ -12,11 +12,11 @@ export const COMPANY_STATUS_MAP = Object.fromEntries(
 )
 
 export const MESSAGE_STATUS = [
-  { value: 'draft', label: 'Borrador', color: 'bg-slate-100 text-slate-600 border-slate-200' },
-  { value: 'sent', label: 'Enviado', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'replied', label: 'Respondido', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { value: 'follow_up', label: 'Seguimiento', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-  { value: 'closed', label: 'Cerrado', color: 'bg-gray-100 text-gray-500 border-gray-200' },
+  { value: 'draft', label: 'Borrador', color: 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]' },
+  { value: 'sent', label: 'Enviado', color: 'bg-[#E1F3FE] text-[#1F6C9F] border-[#BEE0F9]' },
+  { value: 'replied', label: 'Respondido', color: 'bg-[#FBF3DB] text-[#956400] border-[#F0E0A8]' },
+  { value: 'follow_up', label: 'Seguimiento', color: 'bg-[#FBF3DB] text-[#956400] border-[#F0E0A8]' },
+  { value: 'closed', label: 'Cerrado', color: 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]' },
 ]
 
 export const MESSAGE_STATUS_MAP = Object.fromEntries(
@@ -58,11 +58,11 @@ export const SECTORS = [
 ]
 
 export const OFFER_STATUS = [
-  { value: 'new', label: 'Nueva', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  { value: 'interesting', label: 'Interesante', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-  { value: 'applied', label: 'Aplicada', color: 'bg-green-100 text-green-700 border-green-200' },
-  { value: 'rejected', label: 'Descartada', color: 'bg-gray-100 text-gray-500 border-gray-200' },
-  { value: 'expired', label: 'Expirada', color: 'bg-slate-100 text-slate-500 border-slate-200' },
+  { value: 'new', label: 'Nueva', color: 'bg-[#E1F3FE] text-[#1F6C9F] border-[#BEE0F9]' },
+  { value: 'interesting', label: 'Interesante', color: 'bg-[#FBF3DB] text-[#956400] border-[#F0E0A8]' },
+  { value: 'applied', label: 'Aplicada', color: 'bg-[#EDF3EC] text-[#346538] border-[#C5DCC4]' },
+  { value: 'rejected', label: 'Descartada', color: 'bg-[#FDEBEC] text-[#9F2F2D] border-[#F9C9CB]' },
+  { value: 'expired', label: 'Expirada', color: 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]' },
 ]
 
 export const OFFER_STATUS_MAP = Object.fromEntries(

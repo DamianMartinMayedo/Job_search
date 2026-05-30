@@ -1,12 +1,12 @@
 const variantClasses = {
   primary:
-    'bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500',
+    'bg-[#111111] text-white hover:bg-[#333333] focus-visible:ring-[#111111]',
   secondary:
-    'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:ring-primary-500',
+    'bg-white text-[#111111] border border-[#111111] hover:bg-[#F7F6F3] focus-visible:ring-[#111111]',
   danger:
-    'bg-danger-500 text-white hover:bg-danger-700 focus-visible:ring-danger-500',
+    'bg-[#EF4444] text-white hover:bg-[#B91C1C] focus-visible:ring-[#EF4444]',
   ghost:
-    'text-slate-600 hover:bg-slate-100 focus-visible:ring-primary-500',
+    'text-[#787774] hover:bg-[#F7F6F3] hover:text-[#111111] focus-visible:ring-[#111111]',
 }
 
 const sizeClasses = {
@@ -24,7 +24,7 @@ export default function Button({
 }) {
   return (
     <button
-      className={`inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+      className={`inline-flex items-center justify-center font-medium transition-colors transition-transform duration-150 ease-[var(--ease-out-expo)] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.97] ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
       {children}

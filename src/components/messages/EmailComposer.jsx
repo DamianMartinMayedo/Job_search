@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Send, FileText } from 'lucide-react'
+import { PaperPlaneRight, FileText } from '@phosphor-icons/react'
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
@@ -18,6 +18,8 @@ export default function EmailComposer({
   // abre el composer desde una oferta. Si templateId está, se aplica auto.
   // jobTitle/jobUrl/jobLocation se inyectan en el render como {{job_*}}.
   prefill,
+  // initialData: datos de mensaje existente para editar { subject, body, template_id, recipient_email, contact_id, pair_name }
+  initialData,
   onSubmit,
   isSubmitting,
 }) {
@@ -45,16 +47,27 @@ export default function EmailComposer({
 
   useEffect(() => {
     if (open) {
-      setForm({
-        contact_id: initialContact || (companyEmail ? '__company__' : ''),
-        recipient_email: '',
-        subject: '',
-        body: '',
-        template_id: '',
-        pair_name: '',
-      })
+      if (initialData) {
+        setForm({
+          contact_id: initialData.contact_id || initialContact || (companyEmail ? '__company__' : ''),
+          recipient_email: initialData.recipient_email || '',
+          subject: initialData.subject || '',
+          body: initialData.body || '',
+          template_id: initialData.template_id || '',
+          pair_name: initialData.pair_name || '',
+        })
+      } else {
+        setForm({
+          contact_id: initialContact || (companyEmail ? '__company__' : ''),
+          recipient_email: '',
+          subject: '',
+          body: '',
+          template_id: '',
+          pair_name: '',
+        })
+      }
     }
-  }, [open, initialContact, companyEmail])
+  }, [open, initialContact, companyEmail, initialData])
 
   // Auto-aplicar plantilla cuando viene desde prefill (típico: al abrir desde una oferta).
   // Se ejecuta tras que templates y settings hayan cargado.
@@ -158,16 +171,16 @@ export default function EmailComposer({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Redactar email" size="lg">
+    <Modal open={open} onClose={onClose} title={initialData ? 'Editar mensaje' : 'Redactar email'} size="lg">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-[#2F3437]">
             Destinatario
           </label>
           <select
             value={form.contact_id}
             onChange={handleRecipientChange}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
           >
             <option value="">Sin destinatario</option>
             {companyEmail && (
@@ -193,8 +206,8 @@ export default function EmailComposer({
           )}
 
           {getRecipientEmail() && (
-            <p className="text-xs text-green-600 flex items-center gap-1">
-              <Send size={12} />
+            <p className="text-xs text-[#346538] flex items-center gap-1">
+              <PaperPlaneRight size={12} weight="bold" />
               Se enviará a: {getRecipientEmail()}
             </p>
           )}
@@ -202,13 +215,13 @@ export default function EmailComposer({
 
         {templates && templates.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-[#2F3437]">
               Plantilla
             </label>
             <select
               value={form.template_id}
               onChange={(e) => handleTemplateSelect(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+              className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
             >
               <option value="">En blanco</option>
               {templates.map((t) => (
@@ -228,24 +241,24 @@ export default function EmailComposer({
         />
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-[#2F3437]">
             Cuerpo del email *
           </label>
           <textarea
             value={form.body}
             onChange={(e) => handleChange('body', e.target.value)}
-            className="min-h-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden resize-y"
+            className="min-h-64 rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#ABABAB] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden resize-y transition-colors"
             required
           />
         </div>
 
         {pairs && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Adjuntar documentos</label>
+            <label className="text-sm font-medium text-[#2F3437]">Adjuntar documentos</label>
             <select
               value={form.pair_name}
               onChange={(e) => handleChange('pair_name', e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+              className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
             >
               <option value="">Sin adjuntos</option>
               {pairs.map((p) => (
@@ -262,11 +275,11 @@ export default function EmailComposer({
             Cancelar
           </Button>
           <Button type="button" variant="secondary" onClick={(e) => handleSubmit(e, 'draft')} disabled={isSubmitting}>
-            <FileText size={18} />
+            <FileText size={18} weight="regular" />
             {isSubmitting ? 'Guardando...' : 'Guardar borrador'}
           </Button>
           <Button type="button" onClick={(e) => handleSubmit(e, 'sent')} disabled={isSubmitting}>
-            <Send size={18} />
+            <PaperPlaneRight size={18} weight="bold" />
             {isSubmitting ? 'Enviando...' : 'Enviar'}
           </Button>
         </div>

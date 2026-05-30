@@ -1,15 +1,15 @@
 import { Link } from 'react-router-dom'
 import {
   Briefcase,
-  FileEdit,
-  Clock3,
-  PercentSquare,
-  CalendarClock,
-  ExternalLink,
+  NotePencil,
+  Clock,
+  ChartLineUp,
+  CalendarDots,
+  ArrowSquareOut,
   MapPin,
-  Wifi,
-  ChevronRight,
-} from 'lucide-react'
+  WifiHigh,
+  CaretRight,
+} from '@phosphor-icons/react'
 import { useDashboardStats } from '../hooks/useDashboard'
 import { useMessages, useUpdateMessage } from '../hooks/useMessages'
 import { useActivity } from '../hooks/useActivity'
@@ -19,11 +19,11 @@ import { SkeletonCard, SkeletonRow } from '../components/ui/Skeleton'
 import useAppStore from '../store/useAppStore'
 
 const KPIS = [
-  { key: 'newOffers7d', label: 'Ofertas nuevas · 7d', icon: Briefcase, color: 'text-blue-600 bg-blue-50' },
-  { key: 'drafts', label: 'Borradores sin enviar', icon: FileEdit, color: 'text-slate-600 bg-slate-100' },
-  { key: 'waitingReply', label: 'Esperando respuesta', icon: Clock3, color: 'text-amber-600 bg-amber-50' },
-  { key: 'responseRate', label: 'Tasa de respuesta · 30d', icon: PercentSquare, color: 'text-emerald-600 bg-emerald-50', isRate: true },
-  { key: 'followupsToday', label: 'Seguimientos hoy', icon: CalendarClock, color: 'text-orange-600 bg-orange-50' },
+  { key: 'newOffers7d', label: 'Ofertas nuevas · 7d', icon: Briefcase, iconColor: 'text-[#1F6C9F]' },
+  { key: 'drafts', label: 'Borradores sin enviar', icon: NotePencil, iconColor: 'text-[#787774]' },
+  { key: 'waitingReply', label: 'Esperando respuesta', icon: Clock, iconColor: 'text-[#956400]' },
+  { key: 'responseRate', label: 'Tasa de respuesta · 30d', icon: ChartLineUp, iconColor: 'text-[#346538]', isRate: true },
+  { key: 'followupsToday', label: 'Seguimientos hoy', icon: CalendarDots, iconColor: 'text-[#9F2F2D]' },
 ]
 
 export default function Dashboard() {
@@ -45,34 +45,34 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-      <p className="mt-1 text-sm text-slate-500">Resumen de tu búsqueda de empleo</p>
+      <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">Dashboard</h1>
+      <p className="mt-1 text-sm text-[#787774]">Resumen de tu búsqueda de empleo</p>
 
       {/* Hero strip de KPIs */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {loadingStats
           ? Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
-          : KPIS.map((kpi) => {
+          : KPIS.map((kpi, index) => {
               const raw = stats?.[kpi.key]
               const display = kpi.isRate
                 ? raw == null ? '—' : `${raw}%`
                 : raw ?? 0
               return (
-                <div key={kpi.key} className="rounded-xl border border-slate-200 bg-white p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`rounded-lg p-2 ${kpi.color}`}>
-                      <kpi.icon size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-2xl font-bold text-slate-900 leading-tight">{display}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{kpi.label}</p>
-                      {kpi.isRate && stats?.responseRateSent > 0 && (
-                        <p className="mt-0.5 text-[10px] text-slate-400">
-                          {stats.responseRateReplied}/{stats.responseRateSent} mensajes
-                        </p>
-                      )}
-                    </div>
+                <div
+                  key={kpi.key}
+                  className="rounded-lg border border-[#EAEAEA] bg-white p-5 animate-[fadeInUp_300ms_ease-out_both]"
+                  style={{ animationDelay: `${index * 60}ms` }}
+                >
+                  <p className="text-3xl font-semibold text-[#111111] leading-none tabular-nums">{display}</p>
+                  <div className="mt-3 flex items-center gap-1.5">
+                    <kpi.icon size={12} weight="bold" className={kpi.iconColor} />
+                    <p className="text-xs text-[#787774] leading-tight">{kpi.label}</p>
                   </div>
+                  {kpi.isRate && stats?.responseRateSent > 0 && (
+                    <p className="mt-1 text-[10px] text-[#ABABAB]">
+                      {stats.responseRateReplied}/{stats.responseRateSent} mensajes
+                    </p>
+                  )}
                 </div>
               )
             })}
@@ -81,14 +81,14 @@ export default function Dashboard() {
       {/* Banda central: bandeja + ofertas */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Bandeja de borradores y follow-ups */}
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Bandeja de envíos</h2>
+        <section className="overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-[#111111] tracking-[-0.01em]">Bandeja de envíos</h2>
             <span className="text-xs text-slate-400">
               {drafts.length} borradores · {followups.length} follow-ups
             </span>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#EAEAEA]">
             {drafts.length === 0 && followups.length === 0 && (
               <p className="px-5 py-6 text-center text-sm text-slate-400">
                 Nada pendiente. Buen momento para preparar el próximo email.
@@ -98,7 +98,7 @@ export default function Dashboard() {
               <InboxRow
                 key={`d-${m.id}`}
                 tag="Borrador"
-                tagColor="bg-slate-100 text-slate-700"
+                tagColor="bg-[#F7F6F3] text-[#787774]"
                 subject={m.subject}
                 meta={`${m.company_name || '—'} · ${m.contact_first_name || 'sin contacto'}`}
                 href={`/app/companies/${m.company_id}`}
@@ -120,7 +120,7 @@ export default function Dashboard() {
               <InboxRow
                 key={`f-${m.id}`}
                 tag="Seguimiento"
-                tagColor="bg-orange-100 text-orange-700"
+                tagColor="bg-[#FBF3DB] text-[#956400]"
                 subject={m.subject}
                 meta={`${m.company_name || '—'} · enviado ${m.sent_at ? new Date(m.sent_at).toLocaleDateString('es-ES') : '—'}`}
                 href={`/app/companies/${m.company_id}`}
@@ -142,32 +142,32 @@ export default function Dashboard() {
         </section>
 
         {/* Ofertas nuevas para revisar */}
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">
+        <section className="overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-[#111111] tracking-[-0.01em]">
               Ofertas nuevas{stats?.newOffers7d ? ` (${stats.newOffers7d} en 7 días)` : ''}
             </h2>
-            <Link to="/app/offers" className="text-xs text-primary-600 hover:underline">
+            <Link to="/app/offers" className="text-xs text-[#787774] transition-colors hover:text-[#111111]">
               Ver todas →
             </Link>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#EAEAEA]">
             {offers.length === 0 ? (
               <p className="px-5 py-6 text-center text-sm text-slate-400">
                 Sin ofertas nuevas. Configura fuentes en Ajustes.
               </p>
             ) : (
               offers.map((o) => (
-                <div key={o.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50">
+                <div key={o.id} className="flex items-start gap-3 px-5 py-3 hover:bg-[#F7F6F3]">
                   <div className="min-w-0 flex-1">
                     <a
                       href={o.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm font-medium text-slate-900 hover:text-primary-600 line-clamp-1"
+                      className="text-sm font-medium text-[#111111] hover:underline line-clamp-1"
                     >
                       {o.title}
-                      <ExternalLink size={11} className="ml-1 inline opacity-50" />
+                      <ArrowSquareOut size={11} weight="bold" className="ml-1 inline opacity-40" />
                     </a>
                     <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                       {o.company_id ? (
@@ -179,13 +179,13 @@ export default function Dashboard() {
                       )}
                       {o.location && (
                         <span className="flex items-center gap-0.5">
-                          <MapPin size={10} />
+                          <MapPin size={10} weight="bold" />
                           {o.location}
                         </span>
                       )}
                       {o.remote && (
-                        <span className="flex items-center gap-0.5 text-emerald-600">
-                          <Wifi size={10} />
+                        <span className="flex items-center gap-0.5 text-[#346538]">
+                          <WifiHigh size={10} weight="bold" />
                           Remoto
                         </span>
                       )}
@@ -206,7 +206,7 @@ export default function Dashboard() {
                         )
                       }
                       disabled={updateOffer.isPending}
-                      className="rounded px-2 py-1 text-xs text-amber-700 hover:bg-amber-50 disabled:opacity-50 cursor-pointer"
+                      className="rounded px-2 py-1 text-xs text-[#956400] hover:bg-[#FBF3DB] disabled:opacity-50 cursor-pointer transition-colors"
                       title="Marcar como interesante"
                     >
                       Me interesa
@@ -223,7 +223,7 @@ export default function Dashboard() {
                         )
                       }
                       disabled={updateOffer.isPending}
-                      className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+                      className="rounded px-2 py-1 text-xs text-[#787774] hover:bg-[#F7F6F3] disabled:opacity-50 cursor-pointer transition-colors"
                       title="Descartar"
                     >
                       Descartar
@@ -238,9 +238,9 @@ export default function Dashboard() {
 
       {/* Banda inferior: actividad + contactos */}
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Actividad reciente</h2>
+        <section className="overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="border-b border-[#EAEAEA] px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-[#111111] tracking-[-0.01em]">Actividad reciente</h2>
           </div>
           <div className="p-5">
             {loadingActivity ? (
@@ -255,10 +255,10 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {activity.map((a) => (
                   <div key={a.id} className="flex gap-3">
-                    <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary-400" />
+                    <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#EAEAEA]" />
                     <div className="min-w-0">
-                      <p className="text-sm text-slate-700">{a.description}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-sm text-[#2F3437]">{a.description}</p>
+                      <p className="text-xs text-[#ABABAB]">
                         {a.company_name} · {timeAgo(a.created_at)}
                       </p>
                     </div>
@@ -269,11 +269,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-100 px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Contactos recientes</h2>
+        <section className="overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="border-b border-[#EAEAEA] px-5 py-3.5">
+            <h2 className="text-sm font-semibold text-[#111111] tracking-[-0.01em]">Contactos recientes</h2>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[#EAEAEA]">
             {contacts.length === 0 ? (
               <p className="px-5 py-6 text-center text-sm text-slate-400">
                 Aún no hay contactos. Añádelos desde el detalle de una empresa.
@@ -283,18 +283,18 @@ export default function Dashboard() {
                 <Link
                   key={c.id}
                   to={`/app/companies/${c.company_id}`}
-                  className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-slate-50"
+                  className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[#F7F6F3]"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-slate-900">
+                    <p className="text-sm font-medium text-[#111111]">
                       {c.first_name} {c.last_name || ''}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[#787774]">
                       {c.role ? `${c.role} · ` : ''}
                       {c.company_name}
                     </p>
                   </div>
-                  <ChevronRight size={14} className="text-slate-400" />
+                  <CaretRight size={14} weight="bold" className="text-[#EAEAEA]" />
                 </Link>
               ))
             )}
@@ -307,21 +307,21 @@ export default function Dashboard() {
 
 function InboxRow({ tag, tagColor, subject, meta, href, primaryAction }) {
   return (
-    <div className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50">
-      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${tagColor}`}>
+    <div className="flex items-center gap-3 px-5 py-3 hover:bg-[#F7F6F3]">
+      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.05em] ${tagColor}`}>
         {tag}
       </span>
       <div className="min-w-0 flex-1">
-        <Link to={href} className="text-sm font-medium text-slate-900 hover:text-primary-600 line-clamp-1">
+        <Link to={href} className="text-sm font-medium text-[#111111] hover:underline line-clamp-1">
           {subject}
         </Link>
-        <p className="mt-0.5 text-xs text-slate-500 truncate">{meta}</p>
+        <p className="mt-0.5 text-xs text-[#787774] truncate">{meta}</p>
       </div>
       {primaryAction && (
         <button
           onClick={primaryAction.onClick}
           disabled={primaryAction.disabled}
-          className="shrink-0 rounded px-2 py-1 text-xs text-primary-700 hover:bg-primary-50 disabled:opacity-50 cursor-pointer"
+          className="shrink-0 rounded px-2 py-1 text-xs text-[#111111] hover:bg-[#F7F6F3] border border-[#EAEAEA] disabled:opacity-50 cursor-pointer transition-colors"
         >
           {primaryAction.label}
         </button>

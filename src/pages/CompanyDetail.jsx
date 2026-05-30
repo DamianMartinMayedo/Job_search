@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Copy, Trash2, Plus, Mail, X, Pencil, CheckCircle, Eye, Send, Briefcase, Archive } from 'lucide-react'
+import { ArrowLeft, ArrowSquareOut, Copy, Trash, Plus, Envelope, X, Pencil, CheckCircle, Eye, PaperPlaneRight, Briefcase, Archive } from '@phosphor-icons/react'
 import Tabs from '../components/ui/Tabs'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
@@ -63,6 +63,7 @@ export default function CompanyDetail() {
   const [deleteContactTarget, setDeleteContactTarget] = useState(null)
 
   const addToast = useAppStore((s) => s.addToast)
+  const dismissLoadingToast = useAppStore((s) => s.dismissLoadingToast)
 
   const { data: company, isLoading: loadingCompany, error: companyError } = useCompany(id)
   const updateCompany = useUpdateCompany()
@@ -112,19 +113,18 @@ export default function CompanyDetail() {
   const companyActivity = company?.activity || []
 
   const handleStatusChange = (newStatus) => {
+    addToast({ type: 'loading', message: 'Cambiando estado...' })
     updateCompany.mutate(
       { id, data: { status: newStatus } },
       {
-        onSuccess: () =>
-          addToast({
-            type: 'success',
-            message: `Estado cambiado a "${newStatus}"`,
-          }),
-        onError: (err) =>
-          addToast({
-            type: 'error',
-            message: `Error al cambiar estado: ${err.message}`,
-          }),
+        onSuccess: () => {
+          dismissLoadingToast()
+          addToast({ type: 'success', message: `Estado cambiado a "${newStatus}"` })
+        },
+        onError: (err) => {
+          dismissLoadingToast()
+          addToast({ type: 'error', message: `Error al cambiar estado: ${err.message}` })
+        },
       }
     )
   }
@@ -145,53 +145,68 @@ export default function CompanyDetail() {
   }
 
   const handleContactSubmit = async (formData) => {
+    addToast({ type: 'loading', message: 'Guardando contacto...' })
     try {
       if (editingContact) {
         await updateContact.mutateAsync({ id: editingContact.id, data: formData })
+        dismissLoadingToast()
         addToast({ type: 'success', message: `${formData.first_name} actualizado` })
       } else {
         await createContact.mutateAsync(formData)
+        dismissLoadingToast()
         addToast({ type: 'success', message: `${formData.first_name} añadido` })
       }
       setShowContactForm(false)
       setEditingContact(null)
     } catch (err) {
+      dismissLoadingToast()
       addToast({ type: 'error', message: `Error: ${err.message}` })
     }
   }
 
   const handleArchive = () => {
+    addToast({ type: 'loading', message: 'Archivando empresa...' })
     updateCompany.mutate(
       { id, data: { status: 'archived' } },
       {
         onSuccess: () => {
+          dismissLoadingToast()
           addToast({ type: 'success', message: `${company.name} archivada` })
           setArchiveTarget(null)
         },
-        onError: (err) =>
-          addToast({ type: 'error', message: `Error: ${err.message}` }),
+        onError: (err) => {
+          dismissLoadingToast()
+          addToast({ type: 'error', message: `Error: ${err.message}` })
+        },
       }
     )
   }
 
   const handleMessageSubmit = async (data, shouldSend, pairName) => {
+    addToast({ type: 'loading', message: shouldSend ? 'Enviando mensaje...' : 'Guardando borrador...' })
     try {
       const message = await createMessage.mutateAsync({ ...data, pair_name: pairName || null })
       if (shouldSend) {
         sendMessage.mutate(
           { messageId: message.id },
           {
-            onSuccess: () =>
-              addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` }),
-            onError: (err) =>
-              addToast({ type: 'error', message: `Error al enviar: ${err.message}` }),
+            onSuccess: () => {
+              dismissLoadingToast()
+              addToast({ type: 'success', message: `Mensaje enviado a ${data.recipient_email || 'destinatario'}` })
+            },
+            onError: (err) => {
+              dismissLoadingToast()
+              addToast({ type: 'error', message: `Error al enviar: ${err.message}` })
+            },
           }
         )
       } else {
+        dismissLoadingToast()
         addToast({ type: 'success', message: 'Borrador guardado' })
       }
       setShowMessageForm(false)
     } catch (err) {
+      dismissLoadingToast()
       addToast({ type: 'error', message: `Error: ${err.message}` })
     }
   }
@@ -211,10 +226,10 @@ export default function CompanyDetail() {
   if (companyError) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-lg text-red-500">Error al cargar: {companyError.message}</p>
+        <p className="text-lg text-[#9F2F2D]">Error al cargar: {companyError.message}</p>
         <button
           onClick={() => navigate(-1)}
-          className="mt-4 text-sm text-primary-600 hover:text-primary-700 cursor-pointer"
+          className="mt-4 text-sm text-[#111111] hover:underline cursor-pointer"
         >
           Volver atrás
         </button>
@@ -225,10 +240,10 @@ export default function CompanyDetail() {
   if (!company) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <p className="text-lg text-slate-500">Empresa no encontrada</p>
+        <p className="text-lg text-[#787774]">Empresa no encontrada</p>
         <button
           onClick={() => navigate(-1)}
-          className="mt-4 text-sm text-primary-600 hover:text-primary-700 cursor-pointer"
+          className="mt-4 text-sm text-[#111111] hover:underline cursor-pointer"
         >
           Volver atrás
         </button>
@@ -241,7 +256,7 @@ export default function CompanyDetail() {
     <div>
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 cursor-pointer"
+        className="mb-4 flex items-center gap-1 text-sm text-[#787774] hover:text-[#111111] cursor-pointer transition-colors"
       >
         <ArrowLeft size={16} />
         Volver atrás
@@ -250,17 +265,17 @@ export default function CompanyDetail() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-slate-900">{company.name}</h1>
+            <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">{company.name}</h1>
             <button
               onClick={() => setEditField({ kind: 'name', value: company.name || '' })}
-              className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+              className="rounded p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
               title="Editar nombre"
             >
               <Pencil size={14} />
             </button>
             <Badge className={status.color}>{status.label}</Badge>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+          <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-[#787774]">
             {company.sector && <span>{company.sector}</span>}
             {company.city && <span>· {company.city}</span>}
             {company.website && (
@@ -269,14 +284,14 @@ export default function CompanyDetail() {
                   href={company.website}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1 text-primary-600 hover:text-primary-700"
+                  className="flex items-center gap-1 text-[#111111] hover:underline"
                 >
-                  <ExternalLink size={14} />
+                  <ArrowSquareOut size={14} weight="bold" />
                   {company.domain || company.website}
                 </a>
                 <button
                   onClick={() => setEditField({ kind: 'website', value: company.website || '' })}
-                  className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-0.5 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Editar web"
                 >
                   <Pencil size={12} />
@@ -287,10 +302,10 @@ export default function CompanyDetail() {
           <div className="mt-2 flex items-center gap-2">
             {company.email ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-600">{company.email}</span>
+                <span className="text-sm text-[#2F3437]">{company.email}</span>
                 <button
                   onClick={() => setEditField({ kind: 'email', value: company.email || '' })}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Editar email"
                 >
                   <Pencil size={14} />
@@ -299,7 +314,7 @@ export default function CompanyDetail() {
             ) : (
               <button
                 onClick={() => setEditField({ kind: 'email', value: '' })}
-                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+                className="flex items-center gap-1 rounded-lg border border-dashed border-[#EAEAEA] px-3 py-1.5 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] cursor-pointer transition-colors"
               >
                 <Plus size={14} />
                 Añadir email
@@ -313,14 +328,14 @@ export default function CompanyDetail() {
                   href={company.job_portal_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1 text-sm text-primary-600 hover:text-primary-700"
+                  className="flex items-center gap-1 text-sm text-[#111111] hover:underline"
                 >
-                  <Briefcase size={14} />
+                  <Briefcase size={14} weight="regular" />
                   Portal de empleo
                 </a>
                 <button
                   onClick={() => setEditField({ kind: 'jobPortal', value: company.job_portal_url || '' })}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Editar portal de empleo"
                 >
                   <Pencil size={14} />
@@ -329,7 +344,7 @@ export default function CompanyDetail() {
             ) : (
               <button
                 onClick={() => setEditField({ kind: 'jobPortal', value: '' })}
-                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+                className="flex items-center gap-1 rounded-lg border border-dashed border-[#EAEAEA] px-3 py-1.5 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] cursor-pointer transition-colors"
               >
                 <Plus size={14} />
                 Añadir portal de empleo
@@ -339,11 +354,11 @@ export default function CompanyDetail() {
           <div className="mt-2 flex items-center gap-2">
             {company.my_role ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">Rol: </span>
-                <span className="text-sm text-slate-600 max-w-md truncate">{company.my_role}</span>
+                <span className="text-sm text-[#787774]">Rol: </span>
+                <span className="text-sm text-[#2F3437] max-w-md truncate">{company.my_role}</span>
                 <button
                   onClick={() => setEditField({ kind: 'myRole', value: company.my_role || '' })}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Editar rol"
                 >
                   <Pencil size={14} />
@@ -352,7 +367,7 @@ export default function CompanyDetail() {
             ) : (
               <button
                 onClick={() => setEditField({ kind: 'myRole', value: '' })}
-                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+                className="flex items-center gap-1 rounded-lg border border-dashed border-[#EAEAEA] px-3 py-1.5 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] cursor-pointer transition-colors"
               >
                 <Plus size={14} />
                 Añadir rol para plantillas
@@ -362,11 +377,11 @@ export default function CompanyDetail() {
           <div className="mt-2 flex items-center gap-2">
             {company.interest_level ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-500">Interés: </span>
-                <span className="text-sm font-medium text-slate-700">{company.interest_level}/5</span>
+                <span className="text-sm text-[#787774]">Interés: </span>
+                <span className="text-sm font-medium text-[#2F3437]">{company.interest_level}/5</span>
                 <button
                   onClick={() => setEditField({ kind: 'interest', value: String(company.interest_level) })}
-                  className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Editar interés"
                 >
                   <Pencil size={14} />
@@ -375,7 +390,7 @@ export default function CompanyDetail() {
             ) : (
               <button
                 onClick={() => setEditField({ kind: 'interest', value: '' })}
-                className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600 cursor-pointer"
+                className="flex items-center gap-1 rounded-lg border border-dashed border-[#EAEAEA] px-3 py-1.5 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] cursor-pointer transition-colors"
               >
                 <Plus size={14} />
                 Añadir interés
@@ -388,7 +403,7 @@ export default function CompanyDetail() {
           <select
             value={company.status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+            className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
           >
             {Object.values(COMPANY_STATUS_MAP).map((s) => (
               <option key={s.value} value={s.value}>
@@ -399,7 +414,7 @@ export default function CompanyDetail() {
           {company.status !== 'archived' && (
             <button
               onClick={() => setArchiveTarget(company)}
-              className="rounded-lg p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
+              className="rounded-lg p-2 text-[#ABABAB] hover:bg-[#FBF3DB] hover:text-[#956400] cursor-pointer transition-colors"
               title="Archivar empresa"
             >
               <Archive size={16} />
@@ -408,8 +423,8 @@ export default function CompanyDetail() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-200 pr-4">
+      <div className="mt-6 rounded-lg border border-[#EAEAEA] bg-white">
+        <div className="flex items-center justify-between border-b border-[#EAEAEA] pr-4">
           <Tabs tabs={tabDefs} activeTab={tab} onTabChange={setTab} />
           {(tab === 'contacts' || tab === 'messages') && (
             <Button
@@ -444,24 +459,34 @@ export default function CompanyDetail() {
                 if (newStatus === 'sent') data.sent_at = new Date().toISOString()
                 if (newStatus === 'replied') data.replied_at = new Date().toISOString()
                 if (newStatus === 'closed') data.follow_up_done = true
+                addToast({ type: 'loading', message: 'Cambiando estado...' })
                 updateMessage.mutate(
                   { id: msg.id, data },
                   {
-                    onSuccess: () =>
-                      addToast({ type: 'success', message: `Estado cambiado a "${MESSAGE_STATUS_MAP[newStatus]?.label || newStatus}"` }),
-                    onError: (err) =>
-                      addToast({ type: 'error', message: `Error: ${err.message}` }),
+                    onSuccess: () => {
+                      dismissLoadingToast()
+                      addToast({ type: 'success', message: `Estado cambiado a "${MESSAGE_STATUS_MAP[newStatus]?.label || newStatus}"` })
+                    },
+                    onError: (err) => {
+                      dismissLoadingToast()
+                      addToast({ type: 'error', message: `Error: ${err.message}` })
+                    },
                   }
                 )
               }}
               onSend={(msg) => {
+                addToast({ type: 'loading', message: 'Enviando mensaje...' })
                 sendMessage.mutate(
                   { messageId: msg.id },
                   {
-                    onSuccess: () =>
-                      addToast({ type: 'success', message: 'Mensaje enviado' }),
-                    onError: (err) =>
-                      addToast({ type: 'error', message: `Error: ${err.message}` }),
+                    onSuccess: () => {
+                      dismissLoadingToast()
+                      addToast({ type: 'success', message: 'Mensaje enviado' })
+                    },
+                    onError: (err) => {
+                      dismissLoadingToast()
+                      addToast({ type: 'error', message: `Error: ${err.message}` })
+                    },
                   }
                 )
               }}
@@ -477,16 +502,16 @@ export default function CompanyDetail() {
 
           {tab === 'notes' && (
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-700">
+              <label className="text-sm font-medium text-[#2F3437]">
                 Notas sobre esta empresa
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => handleNotesChange(e.target.value)}
                 placeholder="Escribe notas aquí... se guardan automáticamente"
-                className="min-h-48 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden resize-y"
+                className="min-h-48 rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#ABABAB] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden resize-y transition-colors"
               />
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-[#ABABAB]">
                 Se guarda automáticamente tras 1.5s sin escribir
               </p>
             </div>
@@ -546,15 +571,19 @@ export default function CompanyDetail() {
                   return
                 }
               }
+              addToast({ type: 'loading', message: 'Guardando...' })
               updateCompany.mutate(
                 { id, data: { [conf.field]: value } },
                 {
                   onSuccess: () => {
+                    dismissLoadingToast()
                     addToast({ type: 'success', message: `${conf.label} guardado` })
                     setEditField(null)
                   },
-                  onError: (err) =>
-                    addToast({ type: 'error', message: `Error: ${err.message}` }),
+                  onError: (err) => {
+                    dismissLoadingToast()
+                    addToast({ type: 'error', message: `Error: ${err.message}` })
+                  },
                 }
               )
             }}
@@ -581,12 +610,15 @@ export default function CompanyDetail() {
         isSubmitting={deleteContact.isPending}
         onConfirm={() => {
           if (!deleteContactTarget) return
+          addToast({ type: 'loading', message: 'Eliminando contacto...' })
           deleteContact.mutate(deleteContactTarget.id, {
             onSuccess: () => {
+              dismissLoadingToast()
               addToast({ type: 'success', message: 'Contacto eliminado' })
               setDeleteContactTarget(null)
             },
             onError: (err) => {
+              dismissLoadingToast()
               addToast({ type: 'error', message: `Error al eliminar: ${err.message}` })
               setDeleteContactTarget(null)
             },
@@ -641,7 +673,7 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
 
   return (
     <div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-[#EAEAEA]">
         {contacts.map((c) => (
           <div
             key={c.id}
@@ -649,16 +681,16 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
           >
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-[#111111]">
                   {c.first_name} {c.last_name}
                 </p>
                 {c.is_primary && (
-                  <Badge className="bg-primary-100 text-primary-700 border-primary-200">
+                  <Badge className="bg-[#E1F3FE] text-[#1F6C9F] border-[#BEE0F9]">
                     Principal
                   </Badge>
                 )}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[#787774]">
                 {ROLE_TYPES_MAP[c.role_type] || c.role || 'Sin rol'}
               </p>
             </div>
@@ -666,7 +698,7 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
               {c.email && (
                 <button
                   onClick={() => onCopy(c.email)}
-                  className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                  className="rounded p-1.5 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                   title="Copiar email"
                 >
                   <Copy size={16} />
@@ -677,25 +709,25 @@ function ContactsTab({ contacts, onAdd, onEdit, onDelete, onCopy }) {
                   href={c.linkedin_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded p-1.5 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+                  className="rounded p-1.5 text-[#ABABAB] hover:bg-[#E1F3FE] hover:text-[#1F6C9F] transition-colors"
                   title="LinkedIn"
                 >
-                  <ExternalLink size={16} />
+                  <ArrowSquareOut size={16} weight="bold" />
                 </a>
               )}
               <button
                 onClick={() => onEdit(c)}
-                className="rounded p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                className="rounded p-1.5 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
                 title="Editar"
               >
                 <Pencil size={14} />
               </button>
               <button
                 onClick={() => onDelete(c)}
-                className="rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                className="rounded p-1.5 text-[#ABABAB] hover:bg-[#FDEBEC] hover:text-[#9F2F2D] cursor-pointer transition-colors"
                 title="Eliminar"
               >
-                <Trash2 size={16} />
+                <Trash size={16} weight="bold" />
               </button>
                </div>
           </div>
@@ -711,12 +743,12 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
   if (messages.length === 0) {
     return (
       <EmptyState
-        icon={Mail}
+        icon={Envelope}
         title="Sin mensajes"
         description="Crea un email de contacto para esta empresa"
         action={
           <Button onClick={onAdd}>
-            <Mail size={18} />
+            <Envelope size={18} weight="regular" />
             Crear mensaje
           </Button>
         }
@@ -726,7 +758,7 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
 
   return (
     <div>
-      <div className="divide-y divide-slate-100">
+      <div className="divide-y divide-[#EAEAEA]">
         {messages.map((m) => {
           const statusInfo = MESSAGE_STATUS_MAP[m.status] || MESSAGE_STATUS_MAP.draft
           const recipient = m.contact_email || m.contact_first_name || companyEmail || 'sin destinatario'
@@ -736,10 +768,10 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
               className="flex items-center justify-between gap-4 py-3"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
+                <p className="text-sm font-medium text-[#111111] truncate">
                   {m.subject}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#787774]">
                   {m.contact_first_name && `Para: ${m.contact_first_name}`}
                   {m.template_name && ` · Plantilla: ${m.template_name}`}
                 </p>
@@ -752,7 +784,7 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
                   className={`rounded-lg border px-2 py-1.5 text-xs font-semibold focus:ring-2 focus:outline-hidden disabled:opacity-50 cursor-pointer ${statusInfo.color}`}
                 >
                   {Object.values(MESSAGE_STATUS_MAP).map((s) => (
-                    <option key={s.value} value={s.value} className="bg-white text-slate-900 font-normal">
+                    <option key={s.value} value={s.value} className="bg-white text-[#111111] font-normal">
                       {s.label}
                     </option>
                   ))}
@@ -761,14 +793,14 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
                   <button
                     onClick={() => onSend(m)}
                     disabled={isMutating}
-                    className="rounded-lg px-2 py-1.5 text-xs font-medium text-white bg-green-500 hover:bg-green-600 disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                    className="rounded-lg px-2 py-1.5 text-xs font-medium text-white bg-[#111111] hover:bg-[#333333] disabled:opacity-50 cursor-pointer flex items-center gap-1 transition-colors"
                     title="Enviar ahora"
                   >
-                    <Send size={12} />
+                    <PaperPlaneRight size={12} weight="bold" />
                     Enviar
                   </button>
                 )}
-                <span className="text-xs text-slate-400 min-w-16 text-right">
+                <span className="text-xs text-[#ABABAB] min-w-16 text-right">
                   {m.sent_at
                     ? new Date(m.sent_at).toLocaleDateString('es-ES')
                     : 'Borrador'}
@@ -776,10 +808,10 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
                 <button
                   onClick={() => setDeleteTarget(m)}
                   disabled={isMutating}
-                  className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-500 disabled:opacity-50 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#FDEBEC] hover:text-[#9F2F2D] disabled:opacity-50 cursor-pointer transition-colors"
                   title="Eliminar"
                 >
-                  <Trash2 size={14} />
+                  <Trash size={14} weight="bold" />
                 </button>
               </div>
             </div>
@@ -807,7 +839,7 @@ function MessagesTab({ messages, companyEmail, contactEmails, onAdd, onStatusCha
 function ActivityTab({ activity }) {
   if (activity.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-slate-400">
+      <p className="py-8 text-center text-sm text-[#ABABAB]">
         No hay actividad registrada
       </p>
     )
@@ -817,10 +849,10 @@ function ActivityTab({ activity }) {
     <div className="space-y-4">
       {activity.map((a) => (
         <div key={a.id} className="flex gap-3">
-          <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary-400" />
+          <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#EAEAEA]" />
           <div>
-            <p className="text-sm text-slate-700">{a.description}</p>
-            <p className="text-xs text-slate-400">
+            <p className="text-sm text-[#2F3437]">{a.description}</p>
+            <p className="text-xs text-[#ABABAB]">
               {new Date(a.created_at).toLocaleString('es-ES')}
             </p>
           </div>
@@ -855,15 +887,15 @@ function ContactFormModal({ companyId, contact, onClose, onSubmit, isSubmitting 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+      <div className="w-full max-w-md rounded-lg border border-[#EAEAEA] bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between border-b border-[#EAEAEA] px-6 py-4">
+          <h2 className="text-base font-semibold text-[#111111] tracking-[-0.01em]">
             {isEditing ? 'Editar contacto' : 'Añadir contacto'}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 cursor-pointer"
+            className="rounded-lg p-1 text-[#ABABAB] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
           >
             <X size={20} />
           </button>
@@ -895,13 +927,13 @@ function ContactFormModal({ companyId, contact, onClose, onSubmit, isSubmitting 
             onChange={(e) => handleChange('role', e.target.value)}
           />
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-[#2F3437]">
               Tipo de rol
             </label>
             <select
               value={form.role_type}
               onChange={(e) => handleChange('role_type', e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+              className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
             >
               {Object.entries(ROLE_TYPES_MAP).map(([value, label]) => (
                 <option key={value} value={value}>
@@ -915,12 +947,12 @@ function ContactFormModal({ companyId, contact, onClose, onSubmit, isSubmitting 
             value={form.linkedin_url}
             onChange={(e) => handleChange('linkedin_url', e.target.value)}
           />
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-[#2F3437]">
             <input
               type="checkbox"
               checked={form.is_primary}
               onChange={(e) => handleChange('is_primary', e.target.checked)}
-              className="rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+              className="rounded border-[#EAEAEA] cursor-pointer"
             />
             Contacto principal
           </label>

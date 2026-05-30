@@ -1,6 +1,6 @@
 export default function Skeleton({ className = '' }) {
   return (
-    <div className={`animate-pulse rounded-lg bg-slate-200 ${className}`} />
+    <div className={`animate-pulse rounded-lg bg-[#EAEAEA] ${className}`} />
   )
 }
 
@@ -16,11 +16,9 @@ export function SkeletonRow({ columns }) {
 
 export function SkeletonCard() {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6">
-      <Skeleton className="mb-4 h-6 w-2/3" />
-      <Skeleton className="mb-2 h-4 w-full" />
-      <Skeleton className="mb-2 h-4 w-4/5" />
-      <Skeleton className="h-4 w-1/2" />
+    <div className="rounded-lg border border-[#EAEAEA] bg-white p-5">
+      <Skeleton className="mb-4 h-8 w-1/3" />
+      <Skeleton className="mb-2 h-3 w-2/3" />
     </div>
   )
 }

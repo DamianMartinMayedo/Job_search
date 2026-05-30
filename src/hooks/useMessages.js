@@ -7,6 +7,7 @@ export function useMessages(status, filters = {}) {
     queryFn: () => {
       const params = new URLSearchParams()
       if (status) params.set('status', status)
+      if (filters.companyId) params.set('company_id', filters.companyId)
       if (filters.page) params.set('page', filters.page)
       if (filters.limit) params.set('limit', filters.limit)
       const qs = params.toString()

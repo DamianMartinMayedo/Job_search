@@ -334,20 +334,29 @@ async function handleMessages(method, id, req) {
   if (method === 'GET' && !id) {
     const url = new URL(req.url)
     const status = url.searchParams.get('status')
+    const companyId = url.searchParams.get('company_id')
     const { page, limit, offset } = clampOffset(url.searchParams.get('page'), url.searchParams.get('limit'))
     const today = new Date().toISOString().split('T')[0]
 
     let whereClause = ''
     let orderClause = 'ORDER BY m.created_at DESC'
     const params = []
+    let paramIdx = 1
 
     if (status === 'follow_up') {
       params.push(today)
-      whereClause = `WHERE m.follow_up_at <= $1 AND m.follow_up_done = false`
+      whereClause = `WHERE m.follow_up_at <= $${paramIdx} AND m.follow_up_done = false`
+      paramIdx++
       orderClause = 'ORDER BY m.follow_up_at ASC'
     } else if (status) {
       params.push(status)
-      whereClause = `WHERE m.status = $1`
+      whereClause = `WHERE m.status = $${paramIdx}`
+      paramIdx++
+    }
+
+    if (companyId) {
+      params.push(companyId)
+      whereClause += whereClause ? ` AND m.company_id = $${paramIdx}` : `WHERE m.company_id = $${paramIdx}`
     }
 
     const baseQuery = `FROM messages m

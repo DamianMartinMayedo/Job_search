@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+
 import Modal from '../ui/Modal'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
@@ -112,11 +112,11 @@ export default function CompanyForm({
 
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Sector</label>
+            <label className="text-sm font-medium text-[#2F3437]">Sector</label>
             <select
               value={form.sector}
               onChange={(e) => handleChange('sector', e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+              className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
             >
               <option value="">Seleccionar...</option>
               {(allSectors || SECTORS).map((s) => (
@@ -127,13 +127,13 @@ export default function CompanyForm({
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">
+            <label className="text-sm font-medium text-[#2F3437]">
               Fuente
             </label>
             <select
               value={form.source}
               onChange={(e) => handleChange('source', e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+              className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
             >
               {SOURCES.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -176,7 +176,7 @@ export default function CompanyForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-[#2F3437]">
             Interés: {form.interest_level}/5
           </label>
           <input
@@ -185,7 +185,7 @@ export default function CompanyForm({
             max="5"
             value={form.interest_level}
             onChange={(e) => handleChange('interest_level', +e.target.value)}
-            className="w-full accent-primary-600"
+            className="w-full accent-[#111111]"
           />
         </div>
 

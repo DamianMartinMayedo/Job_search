@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { LogIn } from 'lucide-react'
+import { SignIn } from '@phosphor-icons/react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
   const { signIn, error } = useAuth()
@@ -18,21 +18,20 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[#FBFBFA] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary-600 text-white">
-            <LogIn size={24} />
+          <div className="mx-auto mb-5 flex h-11 w-11 items-center justify-center rounded-lg bg-[#111111] text-white">
+            <SignIn size={20} weight="bold" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Job Search CRM</h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">JobCRM</h1>
+          <p className="mt-2 text-sm text-[#787774]">
             Gestiona tu búsqueda de empleo
           </p>
         </div>
-
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-200 bg-white p-6"
+          className="rounded-lg border border-[#EAEAEA] bg-white p-6"
         >
           <Input
             label="Email"

@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Companies from './pages/Companies'
 import CompanyDetail from './pages/CompanyDetail'
+import Messages from './pages/Messages'
 import Offers from './pages/Offers'
 import OfferDetail from './pages/OfferDetail'
 import Templates from './pages/Templates'
@@ -26,8 +27,8 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600" />
+      <div className="flex min-h-screen items-center justify-center bg-[#FBFBFA]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#EAEAEA] border-t-[#111111]" />
       </div>
     )
   }
@@ -57,9 +58,8 @@ function AppRoutes() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="companies" element={<Companies />} />
         <Route path="companies/:id" element={<CompanyDetail />} />
-        {/* Vistas globales antiguas redirigen al Dashboard (que ahora absorbe sus casos de uso) */}
         <Route path="contacts" element={<Navigate to="/app/dashboard" replace />} />
-        <Route path="messages" element={<Navigate to="/app/dashboard" replace />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="offers" element={<Offers />} />
         <Route path="offers/:id" element={<OfferDetail />} />
         <Route path="templates" element={<Templates />} />

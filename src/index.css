@@ -1,56 +1,42 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary-50: #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #3b82f6;
-  --color-primary-600: #2563eb;
-  --color-primary-700: #1d4ed8;
-  --color-primary-800: #1e40af;
-  --color-primary-900: #1e3a8a;
-
-  --color-accent-50: #f0fdf4;
-  --color-accent-100: #dcfce7;
-  --color-accent-200: #bbf7d0;
-  --color-accent-300: #86efac;
-  --color-accent-400: #4ade80;
-  --color-accent-500: #22c55e;
-  --color-accent-600: #16a34a;
-  --color-accent-700: #15803d;
-
+  /* Minimalist-UI base */
   --color-surface: #ffffff;
-  --color-surface-alt: #f8fafc;
-  --color-surface-hover: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-text: #334155;
-  --color-text-muted: #64748b;
-  --color-text-heading: #0f172a;
-  --color-text-inverse: #ffffff;
+  --color-surface-alt: #FBFBFA;
 
-  --color-success-50: #f0fdf4;
-  --color-success-500: #22c55e;
-  --color-success-700: #15803d;
-  --color-warning-50: #fffbeb;
-  --color-warning-500: #f59e0b;
-  --color-warning-700: #b45309;
-  --color-danger-50: #fef2f2;
+  /* Danger (semantic, kept for Button danger variant) */
   --color-danger-500: #ef4444;
   --color-danger-700: #b91c1c;
-  --color-info-50: #eff6ff;
-  --color-info-500: #3b82f6;
-  --color-info-700: #1d4ed8;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: "Switzer", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Minimalist-UI tokens */
+  --color-ink: #111111;
+  --color-muted: #787774;
+  --color-canvas: #FBFBFA;
+  --color-border-sharp: #EAEAEA;
+  --color-surface-warm: #F7F6F3;
+
+  --color-pale-blue: #E1F3FE;
+  --color-pale-blue-text: #1F6C9F;
+  --color-pale-green: #EDF3EC;
+  --color-pale-green-text: #346538;
+  --color-pale-yellow: #FBF3DB;
+  --color-pale-yellow-text: #956400;
+  --color-pale-red: #FDEBEC;
+  --color-pale-red-text: #9F2F2D;
+
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 body {
   margin: 0;
-  background-color: var(--color-surface-alt);
+  background-color: var(--color-canvas);
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -59,4 +45,50 @@ body {
 
 #root {
   min-height: 100vh;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Entrada/salida de los toasts. Animación CSS pura: se dispara al montar el
+   elemento, sin depender de un segundo render (el patrón isVisible+rAF fallaba
+   en operaciones rápidas y bajo StrictMode, dejando el toast invisible). */
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
