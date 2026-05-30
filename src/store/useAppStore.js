@@ -12,6 +12,16 @@ const useAppStore = create((set) => ({
     })),
   removeToast: (id) =>
     set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  // No borra el toast de loading de golpe: lo marca como `exiting` para que el
+  // ToastItem anime su salida y respete un mínimo de visibilidad. Así el
+  // "Enviando..." / "Guardando..." siempre se percibe aunque la operación
+  // termine en milisegundos.
+  dismissLoadingToast: () =>
+    set((s) => ({
+      toasts: s.toasts.map((t) =>
+        t.type === 'loading' ? { ...t, exiting: true } : t
+      ),
+    })),
 
   companyFilters: { status: '', sector: '', city: '', search: '' },
   setCompanyFilter: (key, value) =>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Building2 } from 'lucide-react'
+import { Buildings } from '@phosphor-icons/react'
 import Modal from '../ui/Modal'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
@@ -9,8 +9,6 @@ import { useUpdateJobOffer } from '../../hooks/useJobOffers'
 import { useTemplates } from '../../hooks/useTemplates'
 import useAppStore from '../../store/useAppStore'
 
-// Nombre de la plantilla seed pensada para aplicaciones a oferta. Si el usuario
-// la ha renombrado o borrado, caemos a "primera plantilla disponible".
 const PREFERRED_TEMPLATE_NAME = 'Aplicación a oferta concreta'
 
 function extractDomain(url) {
@@ -22,9 +20,6 @@ function extractDomain(url) {
   }
 }
 
-// Estos dominios son los del portal donde sale la oferta, NO de la empresa.
-// Si el dominio extraído está en esta lista, lo descartamos para no
-// inducir al usuario a crear una empresa "linkedin.com".
 const PORTAL_DOMAINS = new Set([
   'linkedin.com', 'lnkd.in',
   'tecnoempleo.com',
@@ -59,7 +54,6 @@ export default function ApplyToOfferDialog({ open, offer, onClose }) {
 
   const [form, setForm] = useState({ name: '', domain: '', city: '', sector: '' })
 
-  // Prellenar el form cuando se abre con una oferta sin empresa matcheada.
   useEffect(() => {
     if (!open || !offer) return
     const inferredDomain = extractDomain(offer.url)
@@ -72,8 +66,6 @@ export default function ApplyToOfferDialog({ open, offer, onClose }) {
     })
   }, [open, offer])
 
-  // Si la oferta YA tiene empresa matcheada, redirigimos directo al composer
-  // sin enseñar el modal. Eso ocurre en cuanto se monta abierto.
   useEffect(() => {
     if (!open || !offer || !templateId) return
     if (offer.company_id) {
@@ -99,12 +91,7 @@ export default function ApplyToOfferDialog({ open, offer, onClose }) {
         sector: form.sector.trim() || null,
         source: 'job_offer',
       })
-      // Vincular la oferta con la nueva empresa para que la próxima vez
-      // se salte el modal.
-      await updateOffer.mutateAsync({
-        id: offer.id,
-        data: { company_id: company.id },
-      })
+      await updateOffer.mutateAsync({ id: offer.id, data: { company_id: company.id } })
       addToast({ type: 'success', message: `Empresa "${company.name}" creada` })
       navigate(buildComposerUrl(company.id, templateId, offer))
       onClose()
@@ -116,13 +103,13 @@ export default function ApplyToOfferDialog({ open, offer, onClose }) {
   return (
     <Modal open={open} onClose={onClose} title="Aplicar a esta oferta" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-          <p className="font-medium text-slate-800">{offer.title}</p>
+        <div className="rounded-lg border border-[#EAEAEA] bg-[#F7F6F3] px-3 py-2 text-xs text-[#787774]">
+          <p className="font-medium text-[#111111]">{offer.title}</p>
           {offer.location && <p className="mt-0.5">{offer.location}</p>}
         </div>
 
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          <Building2 size={14} className="mt-0.5 shrink-0" />
+        <div className="flex items-start gap-2 rounded-lg border border-[#F0E0A8] bg-[#FBF3DB] px-3 py-2 text-xs text-[#956400]">
+          <Buildings size={14} weight="bold" className="mt-0.5 shrink-0" />
           <span>
             Esta oferta no está vinculada a ninguna empresa de tu BD. Crea la empresa primero — luego abriremos el composer con plantilla y placeholders rellenos.
           </span>

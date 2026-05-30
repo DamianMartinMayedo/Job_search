@@ -1,4 +1,4 @@
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { Warning, Trash } from '@phosphor-icons/react'
 import Modal from './Modal'
 import Button from './Button'
 
@@ -17,11 +17,11 @@ export default function ConfirmModal({
       <div className="flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <div
-            className={`rounded-lg p-2 ${danger ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'}`}
+            className={`rounded-lg p-2 ${danger ? 'bg-[#FDEBEC] text-[#9F2F2D]' : 'bg-[#FBF3DB] text-[#956400]'}`}
           >
-            {danger ? <Trash2 size={20} /> : <AlertTriangle size={20} />}
+            {danger ? <Trash size={18} weight="bold" /> : <Warning size={18} weight="bold" />}
           </div>
-          <p className="text-sm text-slate-600">{message}</p>
+          <p className="text-sm text-[#2F3437]">{message}</p>
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>

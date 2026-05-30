@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, X } from 'lucide-react'
+import { Plus, MagnifyingGlass, X } from '@phosphor-icons/react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import CompanyTable from '../components/companies/CompanyTable'
@@ -24,6 +24,7 @@ export default function Companies() {
   const setFilter = useAppStore((s) => s.setCompanyFilter)
   const clearFilters = useAppStore((s) => s.clearCompanyFilters)
   const addToast = useAppStore((s) => s.addToast)
+  const dismissLoadingToast = useAppStore((s) => s.dismissLoadingToast)
 
   const sort = useAppStore((s) => s.companySort)
   const setSort = useAppStore((s) => s.setCompanySort)
@@ -61,22 +62,28 @@ export default function Companies() {
   }
 
   const handleCreate = async (data) => {
+    addToast({ type: 'loading', message: 'Guardando empresa...' })
     try {
       await createCompany.mutateAsync(data)
+      dismissLoadingToast()
       setFormModalOpen(false)
       addToast({ type: 'success', message: `${data.name} añadida` })
     } catch (err) {
+      dismissLoadingToast()
       addToast({ type: 'error', message: err.message })
     }
   }
 
   const handleUpdate = async (data) => {
+    addToast({ type: 'loading', message: 'Guardando empresa...' })
     try {
       await updateCompany.mutateAsync({ id: editingCompany.id, data })
+      dismissLoadingToast()
       setFormModalOpen(false)
       setEditingCompany(null)
       addToast({ type: 'success', message: `${data.name} actualizada` })
     } catch (err) {
+      dismissLoadingToast()
       addToast({ type: 'error', message: err.message })
     }
   }
@@ -85,19 +92,19 @@ export default function Companies() {
     <div>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Empresas</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">Empresas</h1>
+          <p className="mt-1 text-sm text-[#787774]">
             {total} empresas
             {hasActiveFilters && ' (filtradas)'}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setFormModalOpen(true)}>
-            <Plus size={18} />
+            <Plus size={15} weight="bold" />
             Añadir
           </Button>
           <Button onClick={() => setSearchModalOpen(true)}>
-            <Search size={18} />
+            <MagnifyingGlass size={15} weight="bold" />
             Buscar empresas
           </Button>
         </div>
@@ -122,7 +129,7 @@ export default function Companies() {
         <select
           value={filters.status}
           onChange={(e) => setFilter('status', e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+          className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#2F3437] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
         >
           <option value="">Todos los estados</option>
           {COMPANY_STATUS.map((s) => (
@@ -135,7 +142,7 @@ export default function Companies() {
         <select
           value={filters.sector}
           onChange={(e) => setFilter('sector', e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+          className="rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#2F3437] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
         >
           <option value="">Todos los sectores</option>
           {allSectors.map((s) => (
@@ -148,7 +155,7 @@ export default function Companies() {
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 cursor-pointer"
+            className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-[#787774] hover:bg-[#F7F6F3] hover:text-[#111111] cursor-pointer transition-colors"
           >
             <X size={16} />
             Limpiar

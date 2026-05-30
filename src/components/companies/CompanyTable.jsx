@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2, ExternalLink, Archive, ArrowUp, ArrowDown } from 'lucide-react'
+import { Buildings, ArrowSquareOut, Archive, ArrowUp, ArrowDown } from '@phosphor-icons/react'
 import Badge from '../ui/Badge'
 import EmptyState from '../ui/EmptyState'
 import { SkeletonRow } from '../ui/Skeleton'
@@ -14,13 +14,13 @@ function SortHeader({ label, field, sort, onSort }) {
   return (
     <button
       onClick={() => onSort(field)}
-      className="flex items-center gap-1 text-xs font-medium uppercase tracking-wider text-slate-500 hover:text-slate-700 cursor-pointer"
+      className="flex items-center gap-1 text-xs font-medium uppercase tracking-[0.04em] text-[#787774] hover:text-[#111111] cursor-pointer transition-colors"
     >
       {label}
       {isActive ? (
-        sort.dir === 'ASC' ? <ArrowUp size={12} /> : <ArrowDown size={12} />
+        sort.dir === 'ASC' ? <ArrowUp size={12} weight="bold" /> : <ArrowDown size={12} weight="bold" />
       ) : (
-        <ArrowDown size={12} className="opacity-20" />
+        <ArrowDown size={12} weight="bold" className="opacity-20" />
       )}
     </button>
   )
@@ -111,7 +111,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white">
+      <div className="rounded-lg border border-[#EAEAEA] bg-white">
         {Array.from({ length: 5 }).map((_, i) => (
           <SkeletonRow key={i} columns={5} />
         ))}
@@ -122,7 +122,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
   if (!companies || companies.length === 0) {
     return (
       <EmptyState
-        icon={Building2}
+        icon={Buildings}
         title="No hay empresas"
         description="Busca empresas con Google Places o añade una manualmente"
       />
@@ -132,7 +132,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
   return (
     <>
     {selectedIds.size > 0 && (
-      <div className="mb-4 flex items-center justify-between rounded-lg bg-primary-600 px-4 py-3 text-white">
+      <div className="mb-4 flex items-center justify-between rounded-lg bg-[#111111] px-4 py-3 text-white">
         <span className="text-sm font-medium">
           {selectedIds.size} empresa{selectedIds.size !== 1 ? 's' : ''} seleccionada{selectedIds.size !== 1 ? 's' : ''}
         </span>
@@ -144,7 +144,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               e.target.value = ''
               handleBulkStatus(val)
             }}
-            className="rounded-lg border border-primary-400 bg-primary-700 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
+            className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
           >
             <option value="">Cambiar estado...</option>
             {COMPANY_STATUS.map((s) => (
@@ -160,7 +160,7 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               e.target.value = ''
               handleBulkInterest(val)
             }}
-            className="rounded-lg border border-primary-400 bg-primary-700 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
+            className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-white/20 focus:outline-hidden cursor-pointer"
           >
             <option value="">Interés...</option>
             {[1, 2, 3, 4, 5].map((n) => (
@@ -171,14 +171,14 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
           </select>
           <button
             onClick={() => setBulkAction('archive')}
-            className="rounded-lg bg-white/15 px-3 py-1.5 text-sm hover:bg-white/25 cursor-pointer"
+            className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/15 cursor-pointer transition-colors"
             disabled={batchCompanies.isPending}
           >
             Archivar
           </button>
           <button
             onClick={() => setBulkAction('delete')}
-            className="rounded-lg bg-white/15 px-3 py-1.5 text-sm hover:bg-white/25 cursor-pointer"
+            className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/15 cursor-pointer transition-colors"
             disabled={batchCompanies.isPending}
           >
             Eliminar
@@ -193,14 +193,14 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
       </div>
     )}
 
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-      <div className="hidden md:flex items-center border-b border-slate-200">
+    <div className="overflow-hidden rounded-lg border border-[#EAEAEA] bg-white">
+      <div className="hidden md:flex items-center border-b border-[#EAEAEA]">
         <div className="flex shrink-0 items-center justify-center px-3 py-3">
           <input
             type="checkbox"
             checked={allSelected}
             onChange={toggleSelectAll}
-            className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+            className="size-4 rounded border-[#EAEAEA] cursor-pointer"
           />
         </div>
         <div className="flex-1 grid grid-cols-11 gap-4 px-6 py-3">
@@ -224,26 +224,31 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
         </div>
       </div>
 
-      {companies.map((company) => {
+      {companies.map((company, index) => {
         const status = COMPANY_STATUS_MAP[company.status] || COMPANY_STATUS_MAP.new
         return (
           <div
             key={company.id}
-            className="flex items-center border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
+            className="flex items-center border-b border-[#EAEAEA] last:border-b-0 hover:bg-[#F7F6F3] transition-colors duration-150"
+            style={{
+              animation: 'fadeInUp 300ms ease-out forwards',
+              animationDelay: `${index * 50}ms`,
+              opacity: 0,
+            }}
           >
             <div className="flex shrink-0 items-center justify-center px-3 py-4">
               <input
                 type="checkbox"
                 checked={selectedIds.has(company.id)}
                 onChange={() => toggleSelect(company.id)}
-                className="size-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                className="size-4 rounded border-[#EAEAEA] cursor-pointer"
               />
             </div>
             <div className="flex-1 grid grid-cols-1 gap-2 px-6 py-4 md:grid-cols-11 md:items-center md:gap-4">
               <div className="col-span-2">
                 <Link
                   to={`/app/companies/${company.id}`}
-                  className="text-sm font-medium text-slate-900 hover:text-primary-600"
+                  className="text-sm font-medium text-[#111111] hover:underline"
                 >
                   {company.name}
                 </Link>
@@ -252,23 +257,23 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
                     href={company.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1 text-xs text-slate-400 hover:text-primary-500"
+                    className="flex items-center gap-1 text-xs text-[#ABABAB] hover:text-[#111111] transition-colors"
                   >
-                    <ExternalLink size={12} />
+                    <ArrowSquareOut size={12} weight="bold" />
                     {company.domain || company.website}
                   </a>
                 )}
               </div>
-              <div className="col-span-2 text-sm text-slate-600">
+              <div className="col-span-2 text-sm text-[#2F3437]">
                 {company.email || company.primary_email || '—'}
               </div>
-              <div className="col-span-2 text-sm text-slate-600">
+              <div className="col-span-2 text-sm text-[#2F3437]">
                 {company.sector || '—'}
               </div>
-              <div className="col-span-1 text-sm text-slate-600">
+              <div className="col-span-1 text-sm text-[#2F3437]">
                 {company.city || '—'}
               </div>
-              <div className="col-span-1 text-sm text-slate-600 text-center">
+              <div className="col-span-1 text-sm text-[#2F3437] text-center">
                 {company.interest_level || '—'}
               </div>
               <div className="col-span-1">
@@ -277,13 +282,13 @@ export default function CompanyTable({ companies, isLoading, sort, onSort }) {
               <div className="col-span-2 flex justify-end gap-2">
                 <Link
                   to={`/app/companies/${company.id}`}
-                  className="text-xs text-slate-400 hover:text-primary-600"
+                  className="text-xs text-[#787774] hover:text-[#111111] hover:underline transition-colors"
                 >
                   Ver
                 </Link>
                 <button
                   onClick={() => setArchiveTarget(company)}
-                  className="rounded p-1 text-slate-400 hover:bg-amber-50 hover:text-amber-600 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:bg-[#FBF3DB] hover:text-[#956400] cursor-pointer transition-colors"
                   title="Archivar"
                 >
                   <Archive size={14} />

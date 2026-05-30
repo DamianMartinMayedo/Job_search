@@ -1,11 +1,11 @@
 export default function Tabs({ tabs, activeTab, onTabChange }) {
   return (
-    <nav className="flex border-b border-slate-200" role="tablist">
+    <nav className="flex border-b border-[#EAEAEA]" role="tablist">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.value
         const activeClass = isActive
-          ? 'border-primary-500 text-primary-600'
-          : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          ? 'border-[#111111] text-[#111111]'
+          : 'border-transparent text-[#787774] hover:text-[#111111] hover:border-[#EAEAEA]'
 
         return (
           <button

@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo } from 'react'
-import { FileText, Plus, Pencil, Trash2, Eye, Copy, Search, AlertTriangle } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash, Eye, Copy, MagnifyingGlass, Warning } from '@phosphor-icons/react'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
 import Input from '../components/ui/Input'
@@ -59,6 +59,7 @@ export default function Templates() {
   const updateTemplate = useUpdateTemplate()
   const deleteTemplate = useDeleteTemplate()
   const addToast = useAppStore((s) => s.addToast)
+  const dismissLoadingToast = useAppStore((s) => s.dismissLoadingToast)
 
   const filteredTemplates = useMemo(() => {
     if (!templates) return []
@@ -70,30 +71,37 @@ export default function Templates() {
   }, [templates, search])
 
   const handleDuplicate = async (t) => {
+    addToast({ type: 'loading', message: 'Duplicando plantilla...' })
     try {
       await createTemplate.mutateAsync({
         name: `${t.name} (copia)`,
         subject: t.subject,
         body: t.body,
       })
+      dismissLoadingToast()
       addToast({ type: 'success', message: `Plantilla "${t.name}" duplicada` })
     } catch (err) {
+      dismissLoadingToast()
       addToast({ type: 'error', message: err.message || 'Error al duplicar' })
     }
   }
 
   const handleSave = async (data) => {
+    addToast({ type: 'loading', message: 'Guardando plantilla...' })
     try {
       if (editing) {
         await updateTemplate.mutateAsync({ id: editing.id, data })
+        dismissLoadingToast()
         addToast({ type: 'success', message: 'Plantilla actualizada' })
       } else {
         await createTemplate.mutateAsync(data)
+        dismissLoadingToast()
         addToast({ type: 'success', message: 'Plantilla creada' })
       }
       setFormOpen(false)
       setEditing(null)
     } catch (err) {
+      dismissLoadingToast()
       console.error('Template save error:', err)
       addToast({ type: 'error', message: err.message || 'Error al guardar la plantilla' })
     }
@@ -135,7 +143,7 @@ export default function Templates() {
     <>
     <div>
       {isLoading ? (
-        <div className="rounded-xl border border-slate-200 bg-white">
+        <div className="rounded-lg border border-[#EAEAEA] bg-white">
           {Array.from({ length: 3 }).map((_, i) => (
             <SkeletonRow key={i} columns={3} />
           ))}
@@ -144,21 +152,21 @@ export default function Templates() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Plantillas</h1>
-              <p className="mt-1 text-sm text-slate-500">
+              <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">Plantillas</h1>
+              <p className="mt-1 text-sm text-[#787774]">
                 {filteredTemplates.length} de {templates.length} plantillas
                 {search && ` · "${search}"`}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="relative">
-                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                <MagnifyingGlass size={14} weight="bold" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[#ABABAB]" />
                 <input
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar nombre, asunto o cuerpo..."
-                  className="w-64 rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm text-slate-700 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden"
+                  className="w-64 rounded-lg border border-[#EAEAEA] bg-white py-2 pl-8 pr-3 text-sm text-[#111111] placeholder:text-[#ABABAB] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden transition-colors"
                 />
               </div>
               <Button onClick={() => { setEditing(null); setFormOpen(true) }}>
@@ -169,7 +177,7 @@ export default function Templates() {
           </div>
 
           {filteredTemplates.length === 0 ? (
-            <p className="mt-8 text-center text-sm text-slate-400">
+            <p className="mt-8 text-center text-sm text-[#ABABAB]">
               No hay plantillas que coincidan con "{search}".
             </p>
           ) : (
@@ -177,12 +185,12 @@ export default function Templates() {
               {filteredTemplates.map((t) => (
                 <div
                   key={t.id}
-                  className="rounded-xl border border-slate-200 bg-white p-5"
+                  className="rounded-lg border border-[#EAEAEA] bg-white p-5"
                 >
-                  <h3 className="text-base font-semibold text-slate-900">
+                  <h3 className="text-base font-semibold text-[#111111] tracking-[-0.01em]">
                     {t.name}
                   </h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                  <p className="mt-1 line-clamp-2 text-sm text-[#787774]">
                     {t.subject}
                   </p>
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -215,9 +223,9 @@ export default function Templates() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(t)}
-                      className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                      className="text-[#9F2F2D] hover:bg-[#FDEBEC]"
                     >
-                      <Trash2 size={16} />
+                      <Trash size={16} weight="bold" />
                     </Button>
                   </div>
                 </div>
@@ -257,22 +265,22 @@ export default function Templates() {
         {previewTemplate && (
           <div className="flex flex-col gap-4">
             <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-[0.04em] text-[#787774]">
                 Asunto
               </p>
-              <p className="text-sm text-slate-900">
+              <p className="text-sm text-[#111111]">
                 {previewTemplate.subject}
               </p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase text-slate-500">
+              <p className="text-xs font-medium uppercase tracking-[0.04em] text-[#787774]">
                 Cuerpo
               </p>
-              <div className="mt-1 whitespace-pre-wrap rounded-lg bg-slate-50 p-4 text-sm text-slate-700">
+              <div className="mt-1 whitespace-pre-wrap rounded-lg bg-[#F7F6F3] p-4 text-sm text-[#2F3437]">
                 {renderPreview(previewTemplate)}
               </div>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#ABABAB]">
               Los placeholders se reemplazarán con los datos reales al enviar
             </p>
           </div>
@@ -289,12 +297,15 @@ export default function Templates() {
         isSubmitting={deleteTemplate.isPending}
         onConfirm={() => {
           if (!deleteTarget) return
+          addToast({ type: 'loading', message: 'Eliminando plantilla...' })
           deleteTemplate.mutate(deleteTarget.id, {
             onSuccess: () => {
+              dismissLoadingToast()
               addToast({ type: 'success', message: 'Plantilla eliminada' })
               setDeleteTarget(null)
             },
             onError: (err) => {
+              dismissLoadingToast()
               addToast({ type: 'error', message: `Error: ${err.message}` })
               setDeleteTarget(null)
             },
@@ -382,14 +393,14 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
           required
         />
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-slate-700">
+          <label className="text-sm font-medium text-[#2F3437]">
             Cuerpo del email *
           </label>
           <textarea
             ref={bodyRef}
             value={form.body}
             onChange={(e) => handleChange('body', e.target.value)}
-            className="min-h-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-hidden resize-y"
+            className="min-h-64 rounded-lg border border-[#EAEAEA] bg-white px-3 py-2 text-sm text-[#111111] placeholder:text-[#ABABAB] focus:border-[#111111] focus:ring-2 focus:ring-black/5 focus:outline-hidden resize-y transition-colors"
             required
           />
           <div className="flex flex-wrap gap-1.5">
@@ -398,7 +409,7 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
                 key={p}
                 type="button"
                 onClick={() => insertPlaceholder(p)}
-                className="rounded bg-slate-100 px-2 py-1 text-xs font-mono text-slate-600 hover:bg-slate-200 cursor-pointer"
+                className="rounded bg-[#F7F6F3] px-2 py-1 text-xs font-mono text-[#2F3437] hover:bg-[#EAEAEA] cursor-pointer transition-colors"
               >
                 {p}
               </button>
@@ -406,8 +417,8 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
           </div>
         </div>
         {hasWarnings && (
-          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <div className="flex items-start gap-2 rounded-lg border border-[#F0E0A8] bg-[#FBF3DB] px-3 py-2 text-xs text-[#956400]">
+            <Warning size={14} weight="bold" className="mt-0.5 shrink-0" />
             <div className="space-y-0.5">
               {lint.unclosed && <p>Hay <code>{`{{`}</code> sin cerrar.</p>}
               {lint.unopened && <p>Hay <code>{`}}`}</code> sin un <code>{`{{`}</code> previo.</p>}
@@ -415,7 +426,7 @@ function TemplateFormModal({ open, onClose, template, onSubmit, isSubmitting }) 
                 <p>
                   Placeholders desconocidos:{' '}
                   {lint.unknown.map((u) => (
-                    <code key={u} className="rounded bg-amber-100 px-1 mr-1">{`{{${u}}}`}</code>
+                    <code key={u} className="rounded bg-[#F0E0A8] px-1 mr-1">{`{{${u}}}`}</code>
                   ))}
                   . Se enviarán literales si no los rellenas en el composer.
                 </p>

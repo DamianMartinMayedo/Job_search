@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { User, Plus, X, Tag, Pencil, Check, Upload, FileText, Trash2, FolderOpen } from 'lucide-react'
+import { User, Plus, X, Tag, Pencil, Check, Upload, FileText, Trash, FolderOpen } from '@phosphor-icons/react'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
@@ -19,6 +19,7 @@ export default function Settings() {
   const createPair = useCreateDocumentPair()
   const deletePair = useDeleteDocumentPair()
   const addToast = useAppStore((s) => s.addToast)
+  const dismissLoadingToast = useAppStore((s) => s.dismissLoadingToast)
 
   const cvInputRef = useRef(null)
   const coverInputRef = useRef(null)
@@ -56,22 +57,31 @@ export default function Settings() {
   }
 
   const handleSave = () => {
+    addToast({ type: 'loading', message: 'Guardando perfil...' })
     saveSettings.mutate({ ...form, custom_sectors: customSectors }, {
       onSuccess: () => {
+        dismissLoadingToast()
         addToast({ type: 'success', message: 'Perfil guardado' })
         setEditing(false)
       },
-      onError: (err) =>
-        addToast({ type: 'error', message: `Error: ${err.message}` }),
+      onError: (err) => {
+        dismissLoadingToast()
+        addToast({ type: 'error', message: `Error: ${err.message}` })
+      },
     })
   }
 
   const handleSaveSectors = () => {
+    addToast({ type: 'loading', message: 'Guardando sectores...' })
     saveSettings.mutate({ ...form, custom_sectors: customSectors }, {
-      onSuccess: () =>
-        addToast({ type: 'success', message: 'Sectores guardados' }),
-      onError: (err) =>
-        addToast({ type: 'error', message: `Error: ${err.message}` }),
+      onSuccess: () => {
+        dismissLoadingToast()
+        addToast({ type: 'success', message: 'Sectores guardados' })
+      },
+      onError: (err) => {
+        dismissLoadingToast()
+        addToast({ type: 'error', message: `Error: ${err.message}` })
+      },
     })
   }
 
@@ -107,19 +117,23 @@ export default function Settings() {
     const cvPromise = readFile(pairCv)
     const coverPromise = pairCover ? readFile(pairCover) : Promise.resolve(null)
 
+    addToast({ type: 'loading', message: 'Creando par de documentos...' })
     Promise.all([cvPromise, coverPromise]).then(([cv, cover]) => {
       createPair.mutate(
         { pair_name: pairForm.pair_name.trim(), cv, cover },
         {
           onSuccess: () => {
+            dismissLoadingToast()
             addToast({ type: 'success', message: `Par "${pairForm.pair_name.trim()}" creado` })
             setPairModalOpen(false)
             setPairForm({ pair_name: '' })
             setPairCv(null)
             setPairCover(null)
           },
-          onError: (err) =>
-            addToast({ type: 'error', message: `Error: ${err.message}` }),
+          onError: (err) => {
+            dismissLoadingToast()
+            addToast({ type: 'error', message: `Error: ${err.message}` })
+          },
         }
       )
     })
@@ -128,31 +142,31 @@ export default function Settings() {
   const allSectors = [...SECTORS.filter((s) => s !== 'Otro'), ...customSectors]
 
   if (isLoading) {
-    return <p className="text-sm text-slate-400">Cargando...</p>
+    return <p className="text-sm text-[#ABABAB]">Cargando...</p>
   }
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-slate-900">Ajustes</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1 className="font-[family-name:var(--font-serif)] text-3xl font-semibold tracking-tight text-[#111111]">Ajustes</h1>
+      <p className="mt-1 text-sm text-[#787774]">
         Tu perfil y configuración de sectores
       </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+        <div className="rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="flex items-center justify-between border-b border-[#EAEAEA] px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary-100 p-2 text-primary-600">
-                <User size={20} />
+              <div className="rounded-lg bg-[#E1F3FE] p-2 text-[#1F6C9F]">
+                <User size={20} weight="regular" />
               </div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-base font-semibold text-[#111111] tracking-[-0.01em]">
                 Perfil profesional
               </h2>
             </div>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
-                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-primary-600 hover:bg-primary-50 cursor-pointer"
+                className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-[#111111] hover:bg-[#F7F6F3] cursor-pointer transition-colors"
               >
                 <Pencil size={14} />
                 Editar
@@ -189,8 +203,8 @@ export default function Settings() {
                   onChange={(e) => handleChange('my_email', e.target.value)}
                 />
 
-                <div className="rounded-lg bg-slate-50 p-4">
-                  <p className="text-xs font-medium text-slate-500">
+                <div className="rounded-lg bg-[#F7F6F3] p-4">
+                  <p className="text-xs font-medium text-[#787774]">
                     Placeholders disponibles en plantillas:
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
@@ -198,7 +212,7 @@ export default function Settings() {
                       (p) => (
                         <code
                           key={p}
-                          className="rounded bg-slate-200 px-2 py-0.5 text-xs font-mono text-slate-600"
+                          className="rounded bg-[#EAEAEA] px-2 py-0.5 text-xs font-mono text-[#2F3437]"
                         >
                           {p}
                         </code>
@@ -235,10 +249,10 @@ export default function Settings() {
                   { label: 'Email', value: form.my_email },
                 ].map(({ label, value }) => (
                   <div key={label}>
-                    <p className="text-xs font-medium uppercase text-slate-400">
+                    <p className="text-xs font-medium uppercase tracking-[0.04em] text-[#ABABAB]">
                       {label}
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-900">
+                    <p className="mt-0.5 text-sm text-[#111111]">
                       {value || '—'}
                     </p>
                   </div>
@@ -248,18 +262,18 @@ export default function Settings() {
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
-            <div className="rounded-lg bg-amber-100 p-2 text-amber-600">
-              <Tag size={20} />
+        <div className="rounded-lg border border-[#EAEAEA] bg-white">
+          <div className="flex items-center gap-3 border-b border-[#EAEAEA] px-6 py-4">
+            <div className="rounded-lg bg-[#FBF3DB] p-2 text-[#956400]">
+              <Tag size={20} weight="regular" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-[#111111] tracking-[-0.01em]">
               Sectores
             </h2>
           </div>
 
           <div className="p-6">
-            <p className="mb-4 text-sm text-slate-500">
+            <p className="mb-4 text-sm text-[#787774]">
               Sectores disponibles para buscar empresas con Google Places.
             </p>
 
@@ -271,8 +285,8 @@ export default function Settings() {
                     key={s}
                     className={`${
                       isCustom
-                        ? 'bg-amber-100 text-amber-700 border-amber-200'
-                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                        ? 'bg-[#FBF3DB] text-[#956400] border-[#F0E0A8]'
+                        : 'bg-[#F7F6F3] text-[#787774] border-[#EAEAEA]'
                     } flex items-center gap-1`}
                   >
                     {s}
@@ -280,7 +294,7 @@ export default function Settings() {
                       <button
                         type="button"
                         onClick={() => removeSector(s)}
-                        className="ml-1 rounded-full p-0.5 hover:bg-amber-200 cursor-pointer"
+                        className="ml-1 rounded-full p-0.5 hover:bg-[#F0E0A8] cursor-pointer transition-colors"
                       >
                         <X size={12} />
                       </button>
@@ -321,13 +335,13 @@ export default function Settings() {
         </div>
       </div>
 
-      <div className="mt-6 rounded-xl border border-slate-200 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+      <div className="mt-6 rounded-lg border border-[#EAEAEA] bg-white">
+        <div className="flex items-center justify-between border-b border-[#EAEAEA] px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-green-100 p-2 text-green-600">
-              <FolderOpen size={20} />
+            <div className="rounded-lg bg-[#EDF3EC] p-2 text-[#346538]">
+              <FolderOpen size={20} weight="regular" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-[#111111] tracking-[-0.01em]">
               Pares de documentos (CV + carta)
             </h2>
           </div>
@@ -338,17 +352,17 @@ export default function Settings() {
         </div>
 
         <div className="p-6">
-          <p className="mb-4 text-sm text-slate-500">
+          <p className="mb-4 text-sm text-[#787774]">
             Cada par agrupa un CV y una carta de presentación. Al enviar un correo puedes elegir qué par adjuntar (o ninguno).
           </p>
 
           {pairs && pairs.length > 0 ? (
-            <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            <div className="divide-y divide-[#EAEAEA] rounded-lg border border-[#EAEAEA]">
               {pairs.map((p) => (
                 <div key={p.pair_name} className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-900">{p.pair_name}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <p className="text-sm font-medium text-[#111111]">{p.pair_name}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-[#787774]">
                       {p.cv && (
                         <span className="flex items-center gap-1">
                           <FileText size={12} />
@@ -365,16 +379,16 @@ export default function Settings() {
                   </div>
                   <button
                     onClick={() => setDeletePairTarget(p)}
-                    className="shrink-0 rounded p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                    className="shrink-0 rounded p-1.5 text-[#ABABAB] hover:bg-[#FDEBEC] hover:text-[#9F2F2D] cursor-pointer transition-colors"
                     title="Eliminar par"
                   >
-                    <Trash2 size={16} />
+                    <Trash size={16} weight="bold" />
                   </button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="py-6 text-center text-sm text-slate-400">
+            <p className="py-6 text-center text-sm text-[#ABABAB]">
               No hay pares de documentos. Crea uno con el botón "Nuevo par".
             </p>
           )}
@@ -404,19 +418,19 @@ export default function Settings() {
           />
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">CV (PDF)</label>
+            <label className="text-sm font-medium text-[#2F3437]">CV (PDF)</label>
             {pairCv ? (
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-2">
-                <span className="text-sm text-slate-600 truncate">{pairCv.name}</span>
+              <div className="flex items-center justify-between rounded-lg border border-[#EAEAEA] p-2">
+                <span className="text-sm text-[#2F3437] truncate">{pairCv.name}</span>
                 <button
                   onClick={() => setPairCv(null)}
-                  className="rounded p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:text-[#9F2F2D] cursor-pointer transition-colors"
                 >
                   <X size={14} />
                 </button>
               </div>
             ) : (
-              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600">
+              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#EAEAEA] p-6 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] transition-colors">
                 <Upload size={16} className="mr-2" />
                 Seleccionar CV
                 <input
@@ -430,19 +444,19 @@ export default function Settings() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-700">Carta de presentación (PDF) <span className="font-normal text-slate-400">— opcional</span></label>
+            <label className="text-sm font-medium text-[#2F3437]">Carta de presentación (PDF) <span className="font-normal text-[#ABABAB]">— opcional</span></label>
             {pairCover ? (
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-2">
-                <span className="text-sm text-slate-600 truncate">{pairCover.name}</span>
+              <div className="flex items-center justify-between rounded-lg border border-[#EAEAEA] p-2">
+                <span className="text-sm text-[#2F3437] truncate">{pairCover.name}</span>
                 <button
                   onClick={() => setPairCover(null)}
-                  className="rounded p-1 text-slate-400 hover:text-red-500 cursor-pointer"
+                  className="rounded p-1 text-[#ABABAB] hover:text-[#9F2F2D] cursor-pointer transition-colors"
                 >
                   <X size={14} />
                 </button>
               </div>
             ) : (
-              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500 hover:border-primary-400 hover:text-primary-600">
+              <label className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-[#EAEAEA] p-6 text-sm text-[#787774] hover:border-[#111111] hover:text-[#111111] transition-colors">
                 <Upload size={16} className="mr-2" />
                 Seleccionar carta
                 <input
@@ -488,12 +502,15 @@ export default function Settings() {
         isSubmitting={deletePair.isPending}
         onConfirm={() => {
           if (!deletePairTarget) return
+          addToast({ type: 'loading', message: 'Eliminando par...' })
           deletePair.mutate(deletePairTarget.pair_name, {
             onSuccess: () => {
+              dismissLoadingToast()
               addToast({ type: 'success', message: `Par "${deletePairTarget.pair_name}" eliminado` })
               setDeletePairTarget(null)
             },
             onError: (err) => {
+              dismissLoadingToast()
               addToast({ type: 'error', message: `Error: ${err.message}` })
               setDeletePairTarget(null)
             },
