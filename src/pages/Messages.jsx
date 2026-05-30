@@ -105,9 +105,11 @@ export default function Messages() {
     )
   }
 
-  const handleBatchAction = () => {
-    if (!batchAction) return
-    if (batchAction.action === 'delete') {
+  const handleBatchAction = (overrideAction = null) => {
+    // Evitar que el evento onClick caiga como overrideAction
+    const actionToUse = (overrideAction && overrideAction.action) ? overrideAction : batchAction
+    if (!actionToUse) return
+    if (actionToUse.action === 'delete') {
       addToast({ message: `Eliminando ${selected.length} mensajes...`, type: 'loading' })
       batchMessages.mutate(
         { ids: selected, action: 'delete' },
@@ -125,10 +127,10 @@ export default function Messages() {
           },
         }
       )
-    } else if (batchAction.action === 'status' && batchAction.status) {
+    } else if (actionToUse.action === 'status' && actionToUse.status) {
       addToast({ message: `Actualizando ${selected.length} mensajes...`, type: 'loading' })
       batchMessages.mutate(
-        { ids: selected, action: 'status', status: batchAction.status },
+        { ids: selected, action: 'status', status: actionToUse.status },
         {
           onSuccess: () => {
             dismissLoadingToast()
@@ -287,7 +289,7 @@ export default function Messages() {
             </select>
             {batchAction?.action?.startsWith('status') && (
               <button
-                onClick={handleBatchAction}
+                onClick={() => handleBatchAction()}
                 disabled={batchMessages.isPending}
                 className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/15 disabled:opacity-50 cursor-pointer transition-colors"
               >
@@ -297,7 +299,7 @@ export default function Messages() {
             <button
               onClick={() => {
                 setBatchAction({ action: 'delete' })
-                handleBatchAction()
+                handleBatchAction({ action: 'delete' })
               }}
               disabled={batchMessages.isPending}
               className="rounded-lg border border-white/20 px-3 py-1.5 text-sm hover:bg-white/15 disabled:opacity-50 cursor-pointer transition-colors"
